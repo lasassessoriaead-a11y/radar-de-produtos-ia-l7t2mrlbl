@@ -1,0 +1,266 @@
+{
+  "generatedAt": "2026-08-28T18:15:49.920Z",
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "apiRules": {
+        "list": "id = @request.auth.id",
+        "view": "id = @request.auth.id",
+        "create": "",
+        "update": "id = @request.auth.id",
+        "delete": "id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "avatar",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+        "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "products",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "niche",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "promo_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reviews_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rating",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "seller",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "affiliate_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "competition_level",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "trends_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "demand_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "opportunity_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "opportunity_level",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["hot", "good", "test", "low"]
+        },
+        {
+          "name": "ai_analysis",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_products_category ON products (category)",
+        "CREATE INDEX idx_products_score ON products (opportunity_score DESC)",
+        "CREATE INDEX idx_products_level ON products (opportunity_level)",
+        "CREATE INDEX idx_products_platform ON products (platform)"
+      ]
+    },
+    {
+      "name": "ai_insights",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "global_recommendations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "top_picks",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}
