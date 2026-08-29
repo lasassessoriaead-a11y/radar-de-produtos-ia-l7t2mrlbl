@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T17:44:08.523Z",
+  "generatedAt": "2026-08-29T17:50:46.952Z",
   "collections": [
     {
       "name": "users",
@@ -3619,6 +3619,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -3741,6 +3753,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -3919,6 +3937,18 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Users,
   Search,
@@ -9,38 +9,30 @@ import {
   HelpCircle,
   AlertTriangle,
   Heart,
-  TrendingUp,
-  MessageSquare,
   ShieldCheck,
-  ShieldAlert,
-  ShieldX,
   Plus,
   RefreshCw,
   ExternalLink,
-  ChevronRight,
-  Send,
-  Sliders,
   CheckCircle2,
-  Lock,
   Layers,
   FlaskConical,
   Eye,
-  Info,
-  Calendar,
-  Filter,
   UserCheck,
   UserX,
-  FileText,
   Share2,
   BarChart2,
-  Bot,
+  Clock,
+  Radio,
+  FileSpreadsheet,
+  AlertCircle,
+  Database,
+  Info,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { ScoreRing } from '@/components/ScoreRing'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { audienceService } from '@/services/audience'
@@ -53,6 +45,7 @@ import type {
   InboundLeadRecord,
   IntentMapResponse,
   DemandReportResponse,
+  AudienceProviderMeta,
 } from '@/types/audience'
 
 export default function AudienceRadarPage() {
@@ -64,6 +57,7 @@ export default function AudienceRadarPage() {
 
   // Navegação de Abas
   const [activeTab, setActiveTab] = useState<
+    | 'providers'
     | 'search'
     | 'intent_map'
     | 'terms_bank'
@@ -81,18 +75,22 @@ export default function AudienceRadarPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(initialCategory || 'Todas')
-  const [problemInput, setProblemInput] = useState('')
-  const [desireInput, setDesireInput] = useState('')
+  const [problemInput] = useState('')
+  const [desireInput] = useState('')
   const [selectedProvider, setSelectedProvider] = useState<
-    'reddit' | 'youtube' | 'search_engines' | 'forums'
+    'reddit' | 'youtube' | 'google_search' | 'forums_reviews'
   >('reddit')
   const [selectedSubreddit, setSelectedSubreddit] = useState('')
+
+  // Lista de Providers & Status
+  const [providersList, setProvidersList] = useState<AudienceProviderMeta[]>([])
 
   // Estados de Carregamento
   const [isSearchingSignals, setIsSearchingSignals] = useState(false)
   const [isGeneratingMap, setIsGeneratingMap] = useState(false)
   const [isLoadingReport, setIsLoadingReport] = useState(false)
-  const [isLoadingData, setIsLoadingData] = useState(false)
+  const [, setIsLoadingData] = useState(false)
+  const [isAnalyzingCustomTest, setIsAnalyzingCustomTest] = useState(false)
 
   // Dados Carregados
   const [signals, setSignals] = useState<AudienceSignalRecord[]>([])
@@ -121,8 +119,13 @@ export default function AudienceRadarPage() {
   const [leadConsentChecked, setLeadConsentChecked] = useState(true)
   const [isSavingLead, setIsSavingLead] = useState(false)
 
-  // Modal / Detalhe do Sinal
-  const [activeSignalModal, setActiveSignalModal] = useState<AudienceSignalRecord | null>(null)
+  // Modal de Inserção de Dados Legítimos de Teste para o Pipeline
+  const [showTestImportModal, setShowTestImportModal] = useState(false)
+  const [testPostTitle, setTestPostTitle] = useState('')
+  const [testPostSnippet, setTestPostSnippet] = useState('')
+  const [testCommunity, setTestCommunity] = useState('r/carros')
+  const [testAuthor, setTestAuthor] = useState('u/comprador_teste')
+  const [testSourceUrl, setTestSourceUrl] = useState('https://reddit.com/r/carros/comments/teste')
 
   // 1. Carregar Produtos para o Seletor
   useEffect(() => {
@@ -145,20 +148,22 @@ export default function AudienceRadarPage() {
     loadProducts()
   }, [initialProductId])
 
-  // 2. Carregar Dados Iniciais (Sinais, Oportunidades, Leads, Termos)
+  // 2. Carregar Dados Iniciais e Providers
   const loadInitialData = async () => {
     setIsLoadingData(true)
     try {
-      const [signalsRes, oppsRes, leadsRes, termsRes] = await Promise.all([
+      const [signalsRes, oppsRes, leadsRes, termsRes, provRes] = await Promise.all([
         audienceService.getSignals('', '-intent_score', 1, 50),
         audienceService.getOpportunities('', '-intent_score', 1, 50),
         audienceService.getInboundLeads('', '-created', 1, 50),
         audienceService.getTermsBank('', '-signal_count', 1, 100),
+        audienceService.getProviders(),
       ])
       setSignals(signalsRes.items)
       setOpportunities(oppsRes.items)
       setInboundLeads(leadsRes.items)
       setTermsBank(termsRes.items)
+      if (provRes.providers) setProvidersList(provRes.providers)
     } catch (err) {
       console.error('Erro ao carregar dados do Radar de Público:', err)
     } finally {
@@ -170,8 +175,8 @@ export default function AudienceRadarPage() {
     loadInitialData()
   }, [])
 
-  // 3. Executar Busca Real no Reddit ou Provider
-  const handleSearchRealSignals = async () => {
+  // 3. Consultar Provedor (Reddit = 1º Provider / Status: Integração pendente)
+  const handleQueryProvider = async () => {
     const term = searchKeyword || selectedProduct?.title
     if (!term && selectedCategory === 'Todas') {
       toast.error('Informe um produto, palavra-chave ou selecione uma categoria.')
@@ -179,7 +184,6 @@ export default function AudienceRadarPage() {
     }
 
     setIsSearchingSignals(true)
-    toast.info(`Buscando sinais reais na fonte ${selectedProvider.toUpperCase()}...`)
 
     try {
       const res = await audienceService.searchSignals({
@@ -192,25 +196,132 @@ export default function AudienceRadarPage() {
         limit: 15,
       })
 
-      if (res.signals && res.signals.length > 0) {
-        setSignals(res.signals)
-        toast.success(`${res.signals.length} sinais encontrados e analisados via ${res.provider}!`)
-      } else {
-        toast.warning(res.message || 'Nenhum sinal público encontrado para este termo.')
+      // Exibir aviso com clareza e transparência: fonte real ainda não conectada
+      if (res.status === 'pending_integration') {
+        toast.info(`Provider ${res.provider_name}: ${res.status_label}`, {
+          description:
+            'A arquitetura está pronta e aguardando conexão em ambiente de integração. Não geramos dados fictícios fingindo conexão.',
+          duration: 6000,
+        })
       }
-
-      // Recarregar oportunidades geradas automaticamente
-      const oppsRes = await audienceService.getOpportunities('', '-created', 1, 50)
-      setOpportunities(oppsRes.items)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro na busca'
-      toast.error(`Falha na busca de sinais: ${msg}`)
+      const msg = err instanceof Error ? err.message : 'Erro na consulta'
+      toast.error(`Falha na consulta do provedor: ${msg}`)
     } finally {
       setIsSearchingSignals(false)
     }
   }
 
-  // 4. Gerar Mapa de Intenção e Banco de Termos via IA
+  // 4. Inserir e Processar Dados Legítimos de Teste no Pipeline Analítico Separado
+  // (Intent Score -> Relevance Score -> Match Engine -> Oportunidades)
+  const handleAnalyzeTestData = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!testPostTitle.trim()) {
+      toast.error('Informe o título da publicação de teste.')
+      return
+    }
+
+    setIsAnalyzingCustomTest(true)
+    try {
+      const res = await audienceService.analyzeSignals({
+        signals: [
+          {
+            title: testPostTitle.trim(),
+            snippet: testPostSnippet.trim() || testPostTitle.trim(),
+            community: testCommunity.trim() || 'r/discussao',
+            author_display: testAuthor.trim() || 'u/autor_teste',
+            source_url: testSourceUrl.trim() || '',
+            published_at: new Date().toISOString(),
+            upvotes: 12,
+            comments_count: 8,
+          },
+        ],
+        product_title: selectedProduct?.title || searchKeyword || 'Produto em Teste',
+        product_id: selectedProduct?.id,
+        category: selectedCategory !== 'Todas' ? selectedCategory : selectedProduct?.category,
+        provider: selectedProvider,
+        is_test_data: true, // Claramente identificado como dado de teste
+      })
+
+      toast.success(
+        `1 sinal de teste analisado com sucesso! (Intent Score: ${res.signals[0]?.intent_score}/100)`,
+      )
+      setShowTestImportModal(false)
+      setTestPostTitle('')
+      setTestPostSnippet('')
+
+      // Recarregar sinais e oportunidades
+      const [signalsRes, oppsRes] = await Promise.all([
+        audienceService.getSignals('', '-created', 1, 50),
+        audienceService.getOpportunities('', '-created', 1, 50),
+      ])
+      setSignals(signalsRes.items)
+      setOpportunities(oppsRes.items)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro'
+      toast.error(`Falha ao processar dado de teste: ${msg}`)
+    } finally {
+      setIsAnalyzingCustomTest(false)
+    }
+  }
+
+  // 5. Inserir Lote Padrão de Amostras de Teste para Validação Estrutural da Fase 7
+  const handleLoadStandardTestBatch = async () => {
+    setIsAnalyzingCustomTest(true)
+    try {
+      const prodTitle = selectedProduct?.title || searchKeyword || 'Aspirador Portátil Automotivo'
+      const cat = selectedCategory !== 'Todas' ? selectedCategory : 'Automotivo'
+
+      const batch = [
+        {
+          external_id: `sample_test_${Date.now()}_1`,
+          title: `Qual o melhor ${prodTitle} para comprar sem gastar muito? Alguém indica?`,
+          snippet: `Estou procurando opções de ${prodTitle} para resolver meu problema de limpeza rápida no dia a dia. Vale a pena comprar os modelos USB ou são fracos?`,
+          community: 'r/carros',
+          author_display: 'u/comprador_curioso',
+          source_url: 'https://reddit.com/r/carros/comments/teste_1',
+          published_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+          upvotes: 35,
+          comments_count: 14,
+        },
+        {
+          external_id: `sample_test_${Date.now()}_2`,
+          title: `Dúvida: A bateria de ${prodTitle} dura o suficiente ou descarrega rápido?`,
+          snippet: `Vi vários reviews com opiniões divididas. Quem usa há mais de 3 meses pode me dizer se a bateria mantém a autonomia?`,
+          community: 'r/brasil',
+          author_display: 'u/duvida_consumidor',
+          source_url: 'https://reddit.com/r/brasil/comments/teste_2',
+          published_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+          upvotes: 52,
+          comments_count: 22,
+        },
+      ]
+
+      await audienceService.analyzeSignals({
+        signals: batch,
+        product_title: prodTitle,
+        product_id: selectedProduct?.id,
+        category: cat,
+        provider: selectedProvider,
+        is_test_data: true,
+      })
+
+      toast.success('Lote de 2 sinais de teste inserido e analisado com sucesso!')
+      const [signalsRes, oppsRes] = await Promise.all([
+        audienceService.getSignals('', '-created', 1, 50),
+        audienceService.getOpportunities('', '-created', 1, 50),
+      ])
+      setSignals(signalsRes.items)
+      setOpportunities(oppsRes.items)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro'
+      toast.error(`Falha ao carregar lote de teste: ${msg}`)
+    } finally {
+      setIsAnalyzingCustomTest(false)
+    }
+  }
+
+  // 6. Gerar Mapa de Intenção e Banco de Termos via IA
   const handleGenerateIntentMap = async () => {
     const prodTitle = selectedProduct?.title || searchKeyword
     if (!prodTitle && selectedCategory === 'Todas' && !problemInput && !desireInput) {
@@ -234,7 +345,6 @@ export default function AudienceRadarPage() {
       toast.success('Mapa de Intenção e Banco de Termos gerados com sucesso!')
       setActiveTab('intent_map')
 
-      // Recarregar termos persistidos
       const termsRes = await audienceService.getTermsBank('', '-signal_count', 1, 100)
       setTermsBank(termsRes.items)
     } catch (err: unknown) {
@@ -245,7 +355,7 @@ export default function AudienceRadarPage() {
     }
   }
 
-  // 5. Salvar Novo Lead Inbound Consentido (CRM)
+  // 7. Salvar Novo Lead Inbound Consentido (CRM)
   const handleSaveInboundLead = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!leadIdentifier.trim()) {
@@ -278,7 +388,6 @@ export default function AudienceRadarPage() {
       setLeadName('')
       setLeadDeclaredIntent('')
 
-      // Recarregar lista de leads e oportunidades
       const [leadsRes, oppsRes] = await Promise.all([
         audienceService.getInboundLeads('', '-created', 1, 50),
         audienceService.getOpportunities('', '-intent_score', 1, 50),
@@ -293,7 +402,7 @@ export default function AudienceRadarPage() {
     }
   }
 
-  // 6. Revogar Consentimento (Opt-Out)
+  // 8. Revogar Consentimento (Opt-Out)
   const handleRevokeConsent = async (leadId: string) => {
     try {
       await audienceService.revokeConsent(leadId)
@@ -306,7 +415,7 @@ export default function AudienceRadarPage() {
     }
   }
 
-  // 7. Carregar Relatório de Demanda
+  // 9. Carregar Relatório de Demanda
   const handleLoadDemandReport = async (days = 30) => {
     setReportPeriod(days)
     setIsLoadingReport(true)
@@ -324,37 +433,7 @@ export default function AudienceRadarPage() {
     }
   }
 
-  // Helper de Renderização do Intent Score Badge
-  const renderIntentBadge = (score: number) => {
-    if (score >= 80) {
-      return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#FF3D00]/20 text-[#FF3D00] border border-[#FF3D00]/40">
-          🔥 Intenção Alta ({score}/100)
-        </span>
-      )
-    }
-    if (score >= 60) {
-      return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#00E676]/20 text-[#00E676] border border-[#00E676]/40">
-          🟢 Intenção Relevante ({score}/100)
-        </span>
-      )
-    }
-    if (score >= 40) {
-      return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#FFD600]/20 text-[#FFD600] border border-[#FFD600]/40">
-          🟡 Interesse Indireto ({score}/100)
-        </span>
-      )
-    }
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-gray-600/20 text-gray-400 border border-gray-600/40">
-        ⚪ Baixa Intenção ({score}/100)
-      </span>
-    )
-  }
-
-  // Helper de Renderização da Classificação Ética (Nunca confundir sinal com Lead)
+  // Helper de Renderização da Classificação Ética
   const renderClassificationPill = (classification: string) => {
     switch (classification) {
       case 'content_opportunity':
@@ -410,8 +489,8 @@ export default function AudienceRadarPage() {
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#00F2FF]/15 text-[#00F2FF] border border-[#00F2FF]/30">
                 FASE 7 • RADAR DE PÚBLICO & DEMANDA
               </span>
-              <span className="text-[10px] text-gray-400 font-mono">
-                "Onde estão as pessoas e contextos com maior probabilidade de interesse?"
+              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Integração externa pendente
               </span>
             </div>
             <h1 className="text-lg md:text-xl font-black text-white truncate">
@@ -424,6 +503,16 @@ export default function AudienceRadarPage() {
 
         {/* Ações Rápidas */}
         <div className="flex items-center gap-2.5 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => setShowTestImportModal(true)}
+            variant="outline"
+            className="h-9 px-3 border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 font-bold text-xs gap-1.5"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Inserir Dado de Teste</span>
+          </Button>
+
           <Button
             size="sm"
             onClick={() => setShowLeadModal(true)}
@@ -445,7 +534,73 @@ export default function AudienceRadarPage() {
         </div>
       </div>
 
-      {/* 2. BARRA DE PRINCÍPIOS DE PRIVACIDADE & COMPLIANCE BY DESIGN (Regras 1, 32 e 37) */}
+      {/* 2. CARD DE STATUS DA ARQUITETURA DE PROVIDERS (TRANSPARÊNCIA TOTAL) */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-[#171A29] to-[#0F111D] border border-amber-500/30 space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center flex-shrink-0 text-amber-400">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm text-white">
+                  Audience Source Provider: Reddit (1º Provedor)
+                </span>
+                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-mono">
+                  INTEGRAÇÃO PENDENTE
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-300 mt-0.5">
+                A fonte real ainda não está conectada neste ambiente. A arquitetura analítica
+                (Intent Score, Relevance Score, Match Engine e Oportunidades) está 100% pronta e
+                modular, operando com dados legítimos de teste claramente identificados.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-center">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveTab('providers')}
+              className="h-8 text-[11px] border-[#2A3048] bg-[#161826] text-gray-300 hover:text-white"
+            >
+              Ver Arquitetura de Providers
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleLoadStandardTestBatch}
+              disabled={isAnalyzingCustomTest}
+              className="h-8 text-[11px] border-amber-500/40 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+            >
+              {isAnalyzingCustomTest ? 'Processando...' : 'Carregar Lote de Teste'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Separação explícita entre Camada de Coleta e Camada de Análise */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#232738] text-[11px]">
+          <div className="flex items-center gap-2 text-gray-300">
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#1F2438] text-[#00F2FF] font-bold">
+              CAMADA DE COLETA
+            </span>
+            <span>
+              Reddit (Provider 1 - Pendente) • YouTube / Google Search / Fóruns (Preparados)
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-gray-300">
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#1F2438] text-[#00E676] font-bold">
+              CAMADA DE ANÁLISE
+            </span>
+            <span>
+              Intent Score (0-100) • Relevance Score (0-100) • Match Engine • Oportunidades
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. BARRA DE PRINCÍPIOS DE PRIVACIDADE & COMPLIANCE BY DESIGN */}
       <div className="p-3.5 rounded-xl bg-[#0D101A] border border-[#1E253A] flex items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[#00E676]/10 border border-[#00E676]/30 flex items-center justify-center flex-shrink-0 text-[#00E676]">
@@ -459,23 +614,23 @@ export default function AudienceRadarPage() {
               </span>
             </div>
             <p className="text-[11px] text-gray-400">
-              Uso estrito de APIs oficiais, dados públicos permitidos e leads voluntários em canais
-              próprios. <strong>Proibido:</strong> scraping privado, cold DMs, listas compradas e
-              disparos em massa.
+              Uso estrito de dados públicos permitidos e leads voluntários em canais próprios com
+              consentimento. <strong>Proibido:</strong> scraping privado, cold DMs e disparos em
+              massa.
             </p>
           </div>
         </div>
 
         <div className="hidden lg:flex items-center gap-3 font-mono text-[10px] text-gray-400">
-          <span className="flex items-center gap-1 text-[#00E676]">
-            <CheckCircle2 className="w-3 h-3" /> Reddit API Conectada
+          <span className="flex items-center gap-1 text-amber-400">
+            <Clock className="w-3 h-3" /> Reddit (Integração pendente)
           </span>
           <span>•</span>
-          <span className="text-gray-500">YouTube / Redes (Em Arquitetura)</span>
+          <span className="text-gray-500">YouTube & Search (Preparados)</span>
         </div>
       </div>
 
-      {/* 3. CONTROLE DE BUSCA & SELEÇÃO DE PRODUTO/CATEGORIA */}
+      {/* 4. CONTROLE DE CONSULTA & SELEÇÃO DE PRODUTO/CATEGORIA */}
       <div className="p-5 rounded-2xl bg-[#141624] border border-[#232738] space-y-4 shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Seletor de Produto */}
@@ -537,23 +692,23 @@ export default function AudienceRadarPage() {
             </select>
           </div>
 
-          {/* Provedor Público */}
+          {/* Provedor de Audiência */}
           <div className="md:col-span-2 space-y-1">
-            <label className="text-xs font-bold text-gray-300">Fonte Conectada:</label>
+            <label className="text-xs font-bold text-gray-300">Provedor Fonte:</label>
             <select
               value={selectedProvider}
               onChange={(e) => setSelectedProvider(e.target.value as any)}
               className="w-full h-10 rounded-xl bg-[#0A0B10] border border-[#232738] text-xs text-white px-3 focus:outline-none focus:border-[#00F2FF]"
             >
-              <option value="reddit">Reddit (Oficial Ativo)</option>
-              <option value="youtube">YouTube (Em Arquitetura)</option>
-              <option value="search_engines">Buscas Web (Em Arquitetura)</option>
-              <option value="forums">Fóruns & Reviews (Em Arquitetura)</option>
+              <option value="reddit">Reddit (Provider 1 - Pendente)</option>
+              <option value="youtube">YouTube (Futuro - Arquitetura)</option>
+              <option value="google_search">Google Search (Futuro)</option>
+              <option value="forums_reviews">Fóruns & Reviews (Futuro)</option>
             </select>
           </div>
         </div>
 
-        {/* Linha Opcional: Subreddit & Gatilho de Busca */}
+        {/* Linha Opcional: Subreddit & Gatilho de Consulta */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[#232738]">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-xs text-gray-400 whitespace-nowrap">
@@ -570,31 +725,45 @@ export default function AudienceRadarPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button
               size="sm"
-              onClick={handleSearchRealSignals}
+              onClick={handleQueryProvider}
               disabled={isSearchingSignals}
-              className="h-9 px-4 bg-[#00F2FF] hover:bg-[#00D8E6] text-[#0A0B10] font-black text-xs gap-1.5 shadow-[0_0_15px_rgba(0,242,255,0.25)]"
+              variant="outline"
+              className="h-9 px-4 border-[#2A3048] bg-[#161826] hover:bg-[#202538] text-gray-200 font-bold text-xs gap-1.5"
             >
               <Search className={cn('w-3.5 h-3.5', isSearchingSignals && 'animate-spin')} />
-              {isSearchingSignals
-                ? 'Buscando Conteúdos Reais...'
-                : 'Buscar Sinais Públicos (Reddit)'}
+              {isSearchingSignals ? 'Consultando...' : 'Consultar Status do Provedor'}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setShowTestImportModal(true)}
+              className="h-9 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-90 text-[#0A0B10] font-black text-xs gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Inserir Dados de Teste</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* 4. NAVEGAÇÃO POR ABAS DO RADAR DE PÚBLICO */}
+      {/* 5. NAVEGAÇÃO POR ABAS DO RADAR DE PÚBLICO */}
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 bg-[#10121C] p-1 border border-[#232738] rounded-2xl mb-6">
+        <TabsList className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-11 bg-[#10121C] p-1 border border-[#232738] rounded-2xl mb-6">
+          <TabsTrigger
+            value="providers"
+            className="data-[state=active]:bg-[#1A1D2E] data-[state=active]:text-amber-400 text-[11px] font-semibold py-2"
+          >
+            0. Providers
+          </TabsTrigger>
           <TabsTrigger
             value="search"
             className="data-[state=active]:bg-[#1A1D2E] data-[state=active]:text-[#00F2FF] text-[11px] font-semibold py-2"
           >
-            1. Sinais Reddit
+            1. Sinais
           </TabsTrigger>
           <TabsTrigger
             value="intent_map"
@@ -653,16 +822,163 @@ export default function AudienceRadarPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ABA 1: SINAIS REAIS DO REDDIT & MATCH ENGINE (Regras 6, 7, 8, 9, 10) */}
+        {/* ABA 0: ARQUITETURA DE AUDIENCE SOURCE PROVIDERS */}
+        <TabsContent value="providers" className="space-y-6 m-0">
+          <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738] flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Radio className="w-4 h-4 text-amber-400" />
+                Arquitetura Modular de Audience Source Providers
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Separação estrita entre a camada de coleta de dados e a camada de análise. Reddit é
+                o primeiro provider definido, com providers futuros já preparados na arquitetura.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(providersList.length > 0
+              ? providersList
+              : [
+                  {
+                    id: 'reddit',
+                    name: 'Reddit',
+                    category: 'social_discussion',
+                    status: 'pending_integration',
+                    status_label: 'Integração pendente',
+                    is_primary: true,
+                    order: 1,
+                    description:
+                      'Primeiro Audience Source Provider. Adaptador e pipeline analítico estruturados para busca de discussões públicas, subreddits, comentários e intenção transacional.',
+                    supported_features: [
+                      'Busca por termo / produto',
+                      'Filtro por subreddit (ex: r/carros, r/brasil)',
+                      'Intent Score Engine',
+                      'Relevance Score Engine',
+                      'Match Engine Produto × Dor',
+                    ],
+                    required_credentials: [
+                      'REDDIT_CLIENT_ID',
+                      'REDDIT_CLIENT_SECRET',
+                      'REDDIT_USER_AGENT',
+                    ],
+                    is_configured: false,
+                  },
+                  {
+                    id: 'youtube',
+                    name: 'YouTube',
+                    category: 'video_search',
+                    status: 'pending_integration',
+                    status_label: 'Preparado na arquitetura (futuro)',
+                    is_primary: false,
+                    order: 2,
+                    description:
+                      'Provider preparado na arquitetura para captura de comentários públicos, dúvidas de reviews e tendências de busca em vídeo.',
+                    supported_features: [
+                      'Análise de comentários',
+                      'Dúvidas em reviews',
+                      'Transcrições públicas',
+                    ],
+                    required_credentials: ['YOUTUBE_API_KEY'],
+                    is_configured: false,
+                  },
+                  {
+                    id: 'google_search',
+                    name: 'Google Search & Trends',
+                    category: 'search_intent',
+                    status: 'pending_integration',
+                    status_label: 'Preparado na arquitetura (futuro)',
+                    is_primary: false,
+                    order: 3,
+                    description:
+                      'Provider preparado para termos de busca de alta intenção transacional, perguntas do Google "As pessoas também perguntam" e volumes de busca.',
+                    supported_features: [
+                      'People Also Ask',
+                      'Search Autocomplete',
+                      'Intenção transacional',
+                    ],
+                    required_credentials: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
+                    is_configured: false,
+                  },
+                  {
+                    id: 'forums_reviews',
+                    name: 'Fóruns & Reviews Públicos',
+                    category: 'community_reviews',
+                    status: 'pending_integration',
+                    status_label: 'Preparado na arquitetura (futuro)',
+                    is_primary: false,
+                    order: 4,
+                    description:
+                      'Provider preparado para agregação de avaliações públicas, queixas e discussões abertas em fóruns de nicho.',
+                    supported_features: ['Mapeamento de objeções', 'Dor de consumo recorrente'],
+                    required_credentials: [],
+                    is_configured: false,
+                  },
+                ]
+            ).map((prov) => (
+              <div
+                key={prov.id}
+                className={cn(
+                  'p-5 rounded-2xl bg-[#141624] border transition-all space-y-4 flex flex-col justify-between',
+                  prov.is_primary ? 'border-amber-500/40' : 'border-[#232738]',
+                )}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-white">{prov.name}</span>
+                      {prov.is_primary && (
+                        <Badge className="bg-[#00F2FF]/15 text-[#00F2FF] border-[#00F2FF]/30 text-[9px]">
+                          1º PROVIDER
+                        </Badge>
+                      )}
+                    </div>
+                    <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px] font-mono">
+                      {prov.status_label}
+                    </Badge>
+                  </div>
+
+                  <p className="text-xs text-gray-300 leading-relaxed">{prov.description}</p>
+
+                  <div className="space-y-1.5 text-xs">
+                    <span className="text-[10px] font-mono font-bold text-gray-400 uppercase block">
+                      Recursos Suportados na Arquitetura:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {prov.supported_features.map((feat, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0A0B10] border border-[#232738] text-gray-300"
+                        >
+                          ✓ {feat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[#232738] flex items-center justify-between text-[11px]">
+                  <span className="text-gray-500 font-mono">
+                    Credenciais: {prov.required_credentials.length > 0 ? 'Pendente' : 'N/A'}
+                  </span>
+                  <span className="text-amber-400 font-mono">Adaptador Pronto</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* ABA 1: SINAIS & MATCH ENGINE (Com Identificação Explícita de Dados de Teste) */}
         <TabsContent value="search" className="space-y-6 m-0">
           {/* Barra de Filtros dos Sinais */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-[#141624] border border-[#232738]">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white">
-                Sinais Públicos Encontrados ({signals.length})
+                Sinais Cadastrados ({signals.length})
               </span>
-              <span className="text-[10px] font-mono text-[#00F2FF] bg-[#00F2FF]/10 px-2 py-0.5 rounded border border-[#00F2FF]/30">
-                Fonte Real: Reddit
+              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+                Identificados como Dados de Teste
               </span>
             </div>
 
@@ -698,14 +1014,15 @@ export default function AudienceRadarPage() {
             </div>
           </div>
 
-          {/* Grid de Sinais Públicos */}
+          {/* Grid de Sinais */}
           {signals.length === 0 ? (
             <div className="p-12 text-center rounded-2xl bg-[#121420] border border-[#232738] space-y-3">
-              <Search className="w-8 h-8 text-[#00F2FF] mx-auto opacity-70" />
-              <h3 className="text-sm font-bold text-white">Nenhum sinal carregado no momento</h3>
+              <Search className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
+              <h3 className="text-sm font-bold text-white">Nenhum sinal no momento</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                Clique no botão <strong>"Buscar Sinais Públicos (Reddit)"</strong> acima para
-                conectar a API pública do Reddit e descobrir demandas em tempo real.
+                Clique em <strong>"Inserir Dados de Teste"</strong> ou{' '}
+                <strong>"Carregar Lote de Teste"</strong> para processar publicações pelo pipeline
+                analítico de Intent Score e Match Engine.
               </p>
             </div>
           ) : (
@@ -729,13 +1046,16 @@ export default function AudienceRadarPage() {
                     className="p-5 rounded-2xl bg-[#141624] border border-[#232738] hover:border-[#00F2FF]/40 transition-all space-y-4 flex flex-col justify-between"
                   >
                     <div className="space-y-3">
-                      {/* Top Info / Community / Classificação */}
+                      {/* Top Info / Community / Classificação & Badge de Teste */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono font-bold text-[#FF3D00] bg-[#FF3D00]/10 px-2 py-0.5 rounded border border-[#FF3D00]/30">
                             {signal.community || 'r/reddit'}
                           </span>
                           {renderClassificationPill(signal.signal_classification)}
+                          <span className="text-[9px] font-mono font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                            DADO DE TESTE
+                          </span>
                         </div>
 
                         <span className="text-[10px] text-gray-400 font-mono">
@@ -746,7 +1066,7 @@ export default function AudienceRadarPage() {
                         </span>
                       </div>
 
-                      {/* Título & Snippet do Reddit */}
+                      {/* Título & Snippet */}
                       <div>
                         <h4 className="text-sm font-bold text-white line-clamp-2 leading-tight">
                           {signal.title}
@@ -756,7 +1076,7 @@ export default function AudienceRadarPage() {
                         </p>
                       </div>
 
-                      {/* Scores Separados (Regras 8 e 9: Intent Score vs Relevance Score) */}
+                      {/* Scores Separados da Camada de Análise (Intent Score vs Relevance Score) */}
                       <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[#0E1018] border border-[#212638]">
                         <div>
                           <div className="text-[10px] font-mono text-gray-400 flex items-center justify-between">
@@ -785,7 +1105,7 @@ export default function AudienceRadarPage() {
                         </div>
                       </div>
 
-                      {/* Match Engine: Explicação Natural (Regra 10) */}
+                      {/* Match Engine: Explicação Natural */}
                       <div className="p-3 rounded-xl bg-[#10131E] border border-[#252C42] text-xs space-y-1">
                         <div className="text-[10px] font-mono font-bold text-[#00E676] uppercase tracking-wider flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" /> Match Produto × Necessidade
@@ -796,7 +1116,7 @@ export default function AudienceRadarPage() {
                         </p>
                       </div>
 
-                      {/* Resposta Útil Sugerida (Sem Spam) (Regras 27 e 28) */}
+                      {/* Resposta Útil Sugerida */}
                       {signal.suggested_reply && (
                         <div className="p-3 rounded-xl bg-gradient-to-br from-[#7000FF]/10 to-transparent border border-[#7000FF]/30 text-xs space-y-1">
                           <div className="text-[10px] font-mono font-bold text-[#00F2FF] uppercase flex items-center gap-1">
@@ -805,10 +1125,6 @@ export default function AudienceRadarPage() {
                           <p className="text-[11px] text-gray-300 italic leading-snug">
                             "{signal.suggested_reply}"
                           </p>
-                          <span className="text-[9px] text-gray-500 block">
-                            * Regra: Ajudar primeiro, entregar valor e só recomendar produto se
-                            genuinamente relevante. Sem links de spam automáticos.
-                          </span>
                         </div>
                       )}
                     </div>
@@ -822,12 +1138,10 @@ export default function AudienceRadarPage() {
                           rel="noreferrer"
                           className="text-[11px] font-mono text-[#00F2FF] hover:underline flex items-center gap-1"
                         >
-                          Ver Discussão Real <ExternalLink className="w-3 h-3" />
+                          Ver Discussão <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        <span className="text-[11px] text-gray-500 font-mono">
-                          Discussão arquivada
-                        </span>
+                        <span className="text-[11px] text-gray-500 font-mono">Dado de teste</span>
                       )}
 
                       <div className="flex items-center gap-2">
@@ -862,7 +1176,7 @@ export default function AudienceRadarPage() {
           )}
         </TabsContent>
 
-        {/* ABA 2: MAPA DE INTENÇÃO (Regra 3) */}
+        {/* ABA 2: MAPA DE INTENÇÃO */}
         <TabsContent value="intent_map" className="space-y-6 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738] flex items-center justify-between">
             <div>
@@ -871,8 +1185,8 @@ export default function AudienceRadarPage() {
                 Mapa de Intenção por Estágios de Decisão
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Classificação dos sinais por nível de proximidade do momento de compra, explicando o
-                motivo de cada classificação.
+                Classificação dos termos por nível de proximidade do momento de compra, explicando o
+                motivo de cada estágio.
               </p>
             </div>
 
@@ -1014,7 +1328,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 3: BANCO DE TERMOS DE INTENÇÃO (Regra 4) */}
+        {/* ABA 3: BANCO DE TERMOS */}
         <TabsContent value="terms_bank" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738] flex items-center justify-between">
             <div>
@@ -1071,7 +1385,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 4: RADAR DE PERGUNTAS (Regra 14) */}
+        {/* ABA 4: RADAR DE PERGUNTAS */}
         <TabsContent value="radar_questions" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738]">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1079,8 +1393,8 @@ export default function AudienceRadarPage() {
               Radar de Perguntas — "O que o público está perguntando?"
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Agrupamento de dúvidas recorrentes que alimentam diretamente o Laboratório de
-              Campanhas e Estúdio Criativo.
+              Agrupamento de dúvidas que alimentam diretamente o Laboratório de Campanhas e Estúdio
+              Criativo.
             </p>
           </div>
 
@@ -1136,7 +1450,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 5: RADAR DE OBJEÇÕES (Regra 15) */}
+        {/* ABA 5: RADAR DE OBJEÇÕES */}
         <TabsContent value="radar_objections" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738]">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1144,8 +1458,7 @@ export default function AudienceRadarPage() {
               Radar de Objeções — Objeções Reais Detectadas nas Comunidades
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Somente objeções realmente observadas em discussões públicas para quebra de objeção em
-              copies e vídeos.
+              Objeções mapeadas para quebra de objeção em copies e roteiros de vídeos.
             </p>
           </div>
 
@@ -1193,7 +1506,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 6: RADAR DE DESEJOS (Regra 16) */}
+        {/* ABA 6: RADAR DE DESEJOS */}
         <TabsContent value="radar_desires" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738]">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1235,7 +1548,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 7: MAPA DE COMUNIDADES (Regra 13) */}
+        {/* ABA 7: MAPA DE COMUNIDADES */}
         <TabsContent value="communities" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738]">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -1243,8 +1556,7 @@ export default function AudienceRadarPage() {
               Mapa de Comunidades & Espaços Públicos de Discussão
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
-              Identificação de subreddits e fóruns abertos onde a demanda pelo produto é discutida
-              ativamente.
+              Identificação de subreddits e fóruns abertos onde a demanda pelo produto é discutida.
             </p>
           </div>
 
@@ -1303,7 +1615,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 8: CENTRAL DE OPORTUNIDADES DE PÚBLICO (Regra 29) */}
+        {/* ABA 8: CENTRAL DE OPORTUNIDADES */}
         <TabsContent value="opportunities" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738] flex items-center justify-between">
             <div>
@@ -1380,7 +1692,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 9: MINI CRM DE LEADS INBOUND & CONSENTIMENTO (Regras 22, 23, 24, 25, 26) */}
+        {/* ABA 9: MINI CRM DE LEADS INBOUND */}
         <TabsContent value="inbound_crm" className="space-y-4 m-0">
           <div className="p-4 rounded-2xl bg-[#141624] border border-[#232738] flex items-center justify-between">
             <div>
@@ -1389,8 +1701,8 @@ export default function AudienceRadarPage() {
                 Mini CRM de Leads Inbound Consentidos ({inboundLeads.length})
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Controle estrito de leads capturados voluntariamente em canais próprios (LP,
-                formulários, Telegram). Cada lead possui consentimento rastreável.
+                Controle de leads capturados voluntariamente em canais próprios (LP, formulários,
+                Telegram).
               </p>
             </div>
 
@@ -1478,7 +1790,7 @@ export default function AudienceRadarPage() {
           </div>
         </TabsContent>
 
-        {/* ABA 10: RELATÓRIO DE DEMANDA AGREGADO (Regras 35 e 36) */}
+        {/* ABA 10: RELATÓRIO DE DEMANDA */}
         <TabsContent value="report" className="space-y-6 m-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#141624] border border-[#232738]">
             <div>
@@ -1487,7 +1799,7 @@ export default function AudienceRadarPage() {
                 Relatório de Demanda de Mercado & Intenção
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">
-                Visão consolidada de sinais públicos, perguntas recorrentes e leads consentidos.
+                Visão consolidada de sinais, perguntas recorrentes e leads consentidos.
               </p>
             </div>
 
@@ -1549,7 +1861,104 @@ export default function AudienceRadarPage() {
         </TabsContent>
       </Tabs>
 
-      {/* MODAL: CAPTURA DE LEAD INBOUND COM CONSENTIMENTO (Regra 22, 23, 32) */}
+      {/* MODAL: INSERIR DADOS LEGÍTIMOS DE TESTE */}
+      {showTestImportModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-[#141624] border border-[#2A3048] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#232738]">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-amber-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Inserir Sinal Legítimo de Teste no Radar
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowTestImportModal(false)}
+                className="text-gray-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
+              <p>
+                <strong>Ambiente de Teste:</strong> Como a integração real com o Reddit está
+                pendente, você pode inserir textos de discussão para validar o processamento do
+                Intent Score, Relevance Score e Match Engine. Os dados serão gravados com flag de
+                teste.
+              </p>
+            </div>
+
+            <form onSubmit={handleAnalyzeTestData} className="space-y-3.5 text-xs">
+              <div>
+                <label className="text-gray-300 block mb-1">
+                  Título da Publicação / Dúvida Pública*:
+                </label>
+                <Input
+                  required
+                  value={testPostTitle}
+                  onChange={(e) => setTestPostTitle(e.target.value)}
+                  placeholder="Ex: Alguém recomenda aspirador portátil potente para carro?"
+                  className="bg-[#0A0B10] border-[#252A3D] text-xs h-9 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-300 block mb-1">Conteúdo / Snippet:</label>
+                <textarea
+                  rows={3}
+                  value={testPostSnippet}
+                  onChange={(e) => setTestPostSnippet(e.target.value)}
+                  placeholder="Ex: Comprei um modelo barato e não aguentou areia de praia. Qual marca vocês indicam até R$ 150?"
+                  className="w-full rounded-xl bg-[#0A0B10] border border-[#252A3D] text-xs text-white p-2.5 focus:outline-none focus:border-[#00F2FF]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-300 block mb-1">Comunidade:</label>
+                  <Input
+                    value={testCommunity}
+                    onChange={(e) => setTestCommunity(e.target.value)}
+                    placeholder="Ex: r/carros"
+                    className="bg-[#0A0B10] border-[#252A3D] text-xs h-9 text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-300 block mb-1">Autor Público:</label>
+                  <Input
+                    value={testAuthor}
+                    onChange={(e) => setTestAuthor(e.target.value)}
+                    placeholder="Ex: u/comprador_curioso"
+                    className="bg-[#0A0B10] border-[#252A3D] text-xs h-9 text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#232738]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowTestImportModal(false)}
+                  className="h-8 text-xs border-[#2A3048] bg-[#161826] text-gray-400"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isAnalyzingCustomTest}
+                  className="h-8 text-xs bg-amber-500 hover:bg-amber-600 text-[#0A0B10] font-bold"
+                >
+                  {isAnalyzingCustomTest ? 'Processando...' : 'Processar no Pipeline'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CAPTURA DE LEAD INBOUND COM CONSENTIMENTO */}
       {showLeadModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <div className="bg-[#141624] border border-[#2A3048] rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">

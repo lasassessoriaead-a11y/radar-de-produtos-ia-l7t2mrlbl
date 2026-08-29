@@ -52,11 +52,27 @@ export type InboundLeadStatus =
 export type ConsentStatus = 'active' | 'revoked' | 'expired'
 export type LeadScoreTier = 'hot' | 'interested' | 'potential' | 'cold'
 
+export interface AudienceProviderMeta {
+  id: string
+  name: string
+  category: string
+  status: 'pending_integration' | 'active' | 'configured'
+  status_label: string
+  is_primary: boolean
+  order: number
+  description: string
+  supported_features: string[]
+  required_credentials: string[]
+  is_configured: boolean
+}
+
 export interface AudienceSignalRecord {
   id: string
   user_id?: string
   external_id: string
   source: string // 'reddit', 'youtube', 'forums', etc.
+  provider?: string
+  is_test_data?: boolean
   source_url?: string
   title: string
   snippet: string
@@ -106,6 +122,7 @@ export interface AudienceTermsBankRecord {
   stage_reason?: string
   signal_count: number
   trend_status: TrendStatus
+  is_test_data?: boolean
   last_queried_at?: string
   is_active: boolean
   created: string
@@ -123,6 +140,8 @@ export interface AudienceOpportunityRecord {
   suggested_copy_hook?: string
   suggested_reply_text?: string
   source?: string
+  provider?: string
+  is_test_data?: boolean
   source_url?: string
   community?: string
   product_id?: string

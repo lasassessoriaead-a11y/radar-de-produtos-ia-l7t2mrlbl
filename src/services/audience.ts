@@ -6,10 +6,102 @@ import type {
   InboundLeadRecord,
   IntentMapResponse,
   DemandReportResponse,
+  AudienceProviderMeta,
 } from '@/types/audience'
 
 export const audienceService = {
-  // 1. Gerar Mapa de Intenção e Banco de Termos via IA
+  // 1. Obter Lista de Provedores de Audiência e Status
+  async getProviders(): Promise<{ success: boolean; providers: AudienceProviderMeta[] }> {
+    const res = await fetch(
+      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/providers`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token,
+        },
+      },
+    )
+
+    if (!res.ok) {
+      // Fallback local caso haja falha de rota
+      return {
+        success: true,
+        providers: [
+          {
+            id: 'reddit',
+            name: 'Reddit',
+            category: 'social_discussion',
+            status: 'pending_integration',
+            status_label: 'Integração pendente',
+            is_primary: true,
+            order: 1,
+            description:
+              'Primeiro Audience Source Provider. Adaptador e pipeline analítico estruturados para busca de discussões públicas, subreddits, comentários e intenção transacional.',
+            supported_features: [
+              'Busca por termo / produto',
+              'Filtro por subreddit (ex: r/carros, r/brasil)',
+              'Intent Score Engine',
+              'Relevance Score Engine',
+              'Match Engine Produto × Dor',
+            ],
+            required_credentials: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 'REDDIT_USER_AGENT'],
+            is_configured: false,
+          },
+          {
+            id: 'youtube',
+            name: 'YouTube',
+            category: 'video_search',
+            status: 'pending_integration',
+            status_label: 'Preparado na arquitetura (futuro)',
+            is_primary: false,
+            order: 2,
+            description:
+              'Provider preparado na arquitetura para captura de comentários públicos, dúvidas de reviews e tendências de busca em vídeo.',
+            supported_features: [
+              'Análise de comentários',
+              'Dúvidas em reviews',
+              'Transcrições públicas',
+            ],
+            required_credentials: ['YOUTUBE_API_KEY'],
+            is_configured: false,
+          },
+          {
+            id: 'google_search',
+            name: 'Google Search & Trends',
+            category: 'search_intent',
+            status: 'pending_integration',
+            status_label: 'Preparado na arquitetura (futuro)',
+            is_primary: false,
+            order: 3,
+            description:
+              'Provider preparado para termos de busca de alta intenção transacional, perguntas do Google "As pessoas também perguntam" e volumes de busca.',
+            supported_features: ['People Also Ask', 'Search Autocomplete', 'Intenção transacional'],
+            required_credentials: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
+            is_configured: false,
+          },
+          {
+            id: 'forums_reviews',
+            name: 'Fóruns & Reviews Públicos',
+            category: 'community_reviews',
+            status: 'pending_integration',
+            status_label: 'Preparado na arquitetura (futuro)',
+            is_primary: false,
+            order: 4,
+            description:
+              'Provider preparado para agregação de avaliações públicas, queixas e discussões abertas em fóruns de nicho.',
+            supported_features: ['Mapeamento de objeções', 'Dor de consumo recorrente'],
+            required_credentials: [],
+            is_configured: false,
+          },
+        ],
+      }
+    }
+
+    return await res.json()
+  },
+
+  // 2. Gerar Mapa de Intenção e Banco de Termos via IA
   async generateIntentMap(params: {
     product_title?: string
     product_id?: string
@@ -39,22 +131,25 @@ export const audienceService = {
     return data.data
   },
 
-  // 2. Busca Real de Conteúdos Públicos (Reddit Oficial / Arquitetura de Providers)
+  // 3. Consulta de Provedor de Audiência (Reddit / Futuros)
   async searchSignals(params: {
     query?: string
     product_title?: string
     product_id?: string
     category?: string
-    provider?: string // 'reddit' | 'youtube' | 'search_engines' | etc.
+    provider?: string // 'reddit' | 'youtube' | 'google_search' | 'forums_reviews'
     subreddit?: string
     limit?: number
   }): Promise<{
     provider: string
+    provider_name: string
     status: string
+    status_label: string
     is_connected: boolean
     message: string
     total_found: number
     signals: AudienceSignalRecord[]
+    architecture_ready?: boolean
   }> {
     const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/search`, {
       method: 'POST',
@@ -67,13 +162,63 @@ export const audienceService = {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.message || 'Erro ao buscar sinais públicos na audiência')
+      throw new Error(err.message || 'Erro ao consultar provedor de audiência')
     }
 
     return await res.json()
   },
 
-  // 3. Obter Sinais Salvos
+  // 4. Analisar Sinais (Camada Analítica Pura: Intent Score + Relevance Score + Match Engine + Oportunidades)
+  // Utilizada tanto para dados reais quanto para lotes de teste identificados
+  async analyzeSignals(params: {
+    signals: Array<{
+      external_id?: string
+      title: string
+      snippet?: string
+      community?: string
+      author_display?: string
+      source_url?: string
+      published_at?: string
+      upvotes?: number
+      comments_count?: number
+    }>
+    product_title?: string
+    product_id?: string
+    category?: string
+    provider?: string
+    is_test_data?: boolean
+  }): Promise<{
+    success: boolean
+    provider: string
+    is_test_data: boolean
+    message: string
+    total_analyzed: number
+    signals: AudienceSignalRecord[]
+  }> {
+    const res = await fetch(
+      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/analyze-signals`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token,
+        },
+        body: JSON.stringify({
+          ...params,
+          is_test_data: params.is_test_data !== false,
+        }),
+      },
+    )
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Erro ao analisar sinais na camada analítica')
+    }
+
+    return await res.json()
+  },
+
+  // 5. Obter Sinais Salvos no PocketBase
   async getSignals(
     filter = '',
     sort = '-intent_score',
@@ -89,7 +234,7 @@ export const audienceService = {
     return { items: res.items, totalItems: res.totalItems }
   },
 
-  // 4. Obter Termos de Intenção do Banco
+  // 6. Obter Termos de Intenção do Banco
   async getTermsBank(
     filter = '',
     sort = '-signal_count',
@@ -105,7 +250,7 @@ export const audienceService = {
     return { items: res.items, totalItems: res.totalItems }
   },
 
-  // 5. Obter Fila de Oportunidades de Público
+  // 7. Obter Fila de Oportunidades de Público
   async getOpportunities(
     filter = '',
     sort = '-intent_score',
@@ -131,7 +276,7 @@ export const audienceService = {
       .update(id, { status })
   },
 
-  // 6. Mini CRM de Leads Inbound
+  // 8. Mini CRM de Leads Inbound
   async getInboundLeads(
     filter = '',
     sort = '-created',
@@ -220,7 +365,7 @@ export const audienceService = {
     })
   },
 
-  // 7. Obter Relatório de Demanda Agregado
+  // 9. Obter Relatório de Demanda Agregado
   async getDemandReport(periodDays = 30, category = ''): Promise<DemandReportResponse> {
     const res = await fetch(
       `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/demand-report`,
