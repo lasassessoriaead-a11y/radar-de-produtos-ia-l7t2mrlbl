@@ -18,6 +18,7 @@ import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
 import AudienceRadarPage from './pages/AudienceRadar'
 import CRMPage from './pages/CRM'
+import OrchestratorPage from './pages/Orchestrator'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -30,6 +31,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/orquestrador" element={<OrchestratorPage />} />
             <Route path="/cacador" element={<HunterPage />} />
             <Route path="/radar" element={<RadarPage />} />
             <Route path="/publico" element={<AudienceRadarPage />} />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T18:24:02.913Z",
+  "generatedAt": "2026-08-29T19:09:27.178Z",
   "collections": [
     {
       "name": "users",
@@ -4750,6 +4750,909 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_cad_user_channel ON crm_cadence_settings (channel)"]
+    },
+    {
+      "name": "orchestrator_config",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "config_key",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "autonomy_level",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "shadow_mode_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kill_switch_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kill_switch_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kill_switch_activated_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_objective",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "maximize_commission",
+            "maximize_net_profit",
+            "increase_conversion",
+            "find_winner_products",
+            "increase_repurchase",
+            "build_audience"
+          ]
+        },
+        {
+          "name": "paused_modules",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "guardrails",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "financial_limits",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allowed_channels",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "blocked_categories",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allowed_categories",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "operating_hours",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consecutive_failures_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auto_demoted_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "auto_demote_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_orch_config_key ON orchestrator_config (config_key)"]
+    },
+    {
+      "name": "orchestrator_policies",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "policy_code",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "safety",
+            "budget",
+            "publishing",
+            "crm_contact",
+            "content_quality",
+            "compliance",
+            "channel"
+          ]
+        },
+        {
+          "name": "rule_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "hard_block",
+            "require_approval",
+            "threshold_check",
+            "channel_block",
+            "cadence_cap"
+          ]
+        },
+        {
+          "name": "condition_json",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "priority_order",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_system_immutable",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_orch_policy_code ON orchestrator_policies (policy_code)",
+        "CREATE INDEX idx_orch_policy_cat ON orchestrator_policies (category)",
+        "CREATE INDEX idx_orch_policy_active ON orchestrator_policies (is_active)"
+      ]
+    },
+    {
+      "name": "orchestrator_actions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "action_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "ANALYZE_PRODUCT",
+            "ADD_TO_WATCHLIST",
+            "CREATE_CAMPAIGN_DRAFT",
+            "CREATE_CREATIVE_DRAFT",
+            "CREATE_TEST_VARIATION",
+            "PREPARE_PUBLICATION",
+            "SUGGEST_PUBLICATION",
+            "CREATE_CONTENT_OPPORTUNITY",
+            "CREATE_CRM_RECOMMENDATION",
+            "CREATE_REPURCHASE_RECOMMENDATION",
+            "PREPARE_FOLLOWUP",
+            "REQUEST_REVIEW",
+            "GENERATE_REPORT",
+            "RECALCULATE_SCORE"
+          ]
+        },
+        {
+          "name": "target_module",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "radar",
+            "hunter",
+            "lab",
+            "studio",
+            "publishing",
+            "performance",
+            "sales_intelligence",
+            "audience",
+            "crm",
+            "repurchase"
+          ]
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reasoning",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "evidence_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evidence_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evidence_strength",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["insufficient", "weak", "moderate", "strong"]
+        },
+        {
+          "name": "is_experiment_hypothesis",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_tier",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["insufficient", "low", "moderate", "high"]
+        },
+        {
+          "name": "risk_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "risk_tier",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["low", "medium", "high"]
+        },
+        {
+          "name": "priority_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_external_action",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_financial_action",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_cost",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expected_impact",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_reversible",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reversal_instructions",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "pending_approval",
+            "approved",
+            "rejected",
+            "postponed",
+            "in_progress",
+            "completed",
+            "blocked",
+            "failed",
+            "shadow_logged"
+          ]
+        },
+        {
+          "name": "block_reason_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "consent_missing",
+            "opt_out",
+            "policy_violation",
+            "guardrail_cap",
+            "module_paused",
+            "kill_switch",
+            "integration_pending",
+            "none"
+          ]
+        },
+        {
+          "name": "block_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "integration_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["native_internal", "pending_integration", "connected"]
+        },
+        {
+          "name": "pending_integration_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "entity_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "entity_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "entity_title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payload_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "simulation_snapshot",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "execution_result",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "post_execution_metrics",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approved_by",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "approved_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rejected_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "postponed_until",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "execution_attempts",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "max_retries",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_retry_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "test_data_note",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_orch_act_idemp ON orchestrator_actions (idempotency_key)",
+        "CREATE INDEX idx_orch_act_status ON orchestrator_actions (status)",
+        "CREATE INDEX idx_orch_act_prio ON orchestrator_actions (priority_score DESC)",
+        "CREATE INDEX idx_orch_act_type ON orchestrator_actions (action_type)",
+        "CREATE INDEX idx_orch_act_mod ON orchestrator_actions (target_module)"
+      ]
+    },
+    {
+      "name": "orchestrator_decision_log",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "action_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "action_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "target_module",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "situation_observed",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "proposed_decision",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "evidence_used",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_size",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "risk_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "priority_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "applied_policies",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "autonomy_level_at_time",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "decision_outcome",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "executed_auto",
+            "approved_by_user",
+            "rejected_by_user",
+            "postponed",
+            "blocked_consent",
+            "blocked_optout",
+            "blocked_policy",
+            "blocked_guardrail",
+            "shadow_logged",
+            "failed"
+          ]
+        },
+        {
+          "name": "executed_by",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "execution_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["success", "failure", "partial", "cancelled", "blocked", "none"]
+        },
+        {
+          "name": "execution_details",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "feedback_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_shadow_mode",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_orch_log_act ON orchestrator_decision_log (action_id)",
+        "CREATE INDEX idx_orch_log_out ON orchestrator_decision_log (decision_outcome)",
+        "CREATE INDEX idx_orch_log_created ON orchestrator_decision_log (created DESC)",
+        "CREATE INDEX idx_orch_log_mod ON orchestrator_decision_log (target_module)"
+      ]
+    },
+    {
+      "name": "orchestrator_shadow_log",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "hypothetical_action",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "action_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "target_module",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "target_entity_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_entity_title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reasoning",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evidence_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "risk_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expected_outcome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_actual_action",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actual_outcome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comparison_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "pending_outcome",
+            "ai_matched_user",
+            "ai_diverged_user",
+            "user_inaction_positive",
+            "user_inaction_negative"
+          ]
+        },
+        {
+          "name": "comparison_analysis",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_orch_shad_mod ON orchestrator_shadow_log (target_module)",
+        "CREATE INDEX idx_orch_shad_status ON orchestrator_shadow_log (comparison_status)",
+        "CREATE INDEX idx_orch_shad_created ON orchestrator_shadow_log (created DESC)"
+      ]
     }
   ]
 }

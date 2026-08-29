@@ -84,6 +84,14 @@ export default function Layout() {
       badge: null,
     },
     {
+      to: '/orquestrador',
+      label: 'Orquestrador IA',
+      icon: ShieldCheck,
+      badge: 'FASE 9',
+      badgeColor:
+        'bg-[#7000FF]/25 text-[#00F2FF] border-[#7000FF]/50 shadow-[0_0_8px_rgba(0,242,255,0.3)]',
+    },
+    {
       to: '/cacador',
       label: 'Caçador de Oportunidades',
       icon: Compass,

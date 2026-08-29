@@ -253,6 +253,72 @@ export default function Index() {
         </div>
       </div>
 
+      {/* CARD FASE 9: ORQUESTRADOR IA & GOVERNANÇA */}
+      <div className="rounded-2xl border border-[#7000FF]/40 bg-gradient-to-br from-[#121428]/95 via-[#161830]/95 to-[#0e1122]/95 p-5 md:p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-[#00F2FF]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-[#282F4E] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-[#7000FF] to-[#00F2FF] text-[#0A0B10]">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">
+                  ⚡ Orquestrador IA Autônomo com Governança
+                </h2>
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00F2FF]/20 text-[#00F2FF] border border-[#00F2FF]/40 font-mono">
+                  FASE 9 • NÍVEL 1
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Central de supervisão, aprovação humana, Modo Sombra e salvaguardas LGPD de todos os
+                módulos.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/orquestrador"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] text-xs font-bold text-[#0A0B10] transition-all hover:opacity-95 shadow-[0_0_15px_rgba(0,242,255,0.3)] self-start md:self-auto"
+          >
+            Abrir Orquestrador
+            <ArrowUpRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-[#22283E] space-y-1">
+            <span className="text-[10px] font-mono text-gray-400 uppercase">
+              Nível de Autonomia
+            </span>
+            <div className="text-xl font-black font-mono text-[#00F2FF]">NÍVEL 1</div>
+            <p className="text-[10px] text-gray-400">Recomendar (Padrão)</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-amber-900/40 space-y-1">
+            <span className="text-[10px] font-mono text-amber-400 uppercase">
+              Caixa de Aprovações
+            </span>
+            <div className="text-xl font-black font-mono text-amber-400">8 Ações</div>
+            <p className="text-[10px] text-slate-400">Triagem e Simulação</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-cyan-900/40 space-y-1">
+            <span className="text-[10px] font-mono text-cyan-400 uppercase">Modo Sombra</span>
+            <div className="text-xl font-black font-mono text-cyan-300">Ativo</div>
+            <p className="text-[10px] text-slate-400">Gravando hipóteses</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-900/40 space-y-1">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase">
+              Salvaguardas LGPD
+            </span>
+            <div className="text-xl font-black font-mono text-emerald-400">Hard Blocks</div>
+            <p className="text-[10px] text-emerald-300">Consentimento estrito</p>
+          </div>
+        </div>
+      </div>
+
       {/* CARD 🧠 O QUE A IA APRENDEU (FASE 6) */}
       <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-[#0c1425]/90 via-[#0a1020]/90 to-[#0d1b30]/90 p-5 md:p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
