@@ -111,6 +111,7 @@ export interface TrackingLinkRecord {
   utm_content?: string
   utm_term?: string
   is_active: boolean
+  is_test_data?: boolean
   raw_clicks_count?: number
   valid_clicks_count?: number
   conversions_count?: number
@@ -134,6 +135,7 @@ export interface ClickEventRecord {
   channel?: string
   sub_id?: string
   is_valid: boolean
+  is_test_data?: boolean
   invalid_reason?: string
   referrer_host?: string
   user_agent_short?: string
@@ -168,6 +170,7 @@ export interface ConversionRecord {
   conversion_date?: string
   raw_payload?: Record<string, unknown>
   notes?: string
+  is_test_data?: boolean
   created: string
   updated: string
 }

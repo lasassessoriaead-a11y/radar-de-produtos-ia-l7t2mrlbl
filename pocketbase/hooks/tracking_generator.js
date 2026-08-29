@@ -16,6 +16,7 @@ routerAdd(
     const publicationId = (body.publication_id || '').trim()
     const channel = (body.channel || 'Instagram').trim()
     const originalDestination = (body.destination_url || '').trim()
+    const isTestData = body.is_test_data === true
 
     if (!originalDestination) {
       return e.badRequestError('URL de destino é obrigatória')
@@ -105,6 +106,7 @@ routerAdd(
         linkRec.set('utm_content', utmContent)
         linkRec.set('utm_term', utmTerm)
         linkRec.set('is_active', true)
+        linkRec.set('is_test_data', isTestData)
         linkRec.set('raw_clicks_count', 0)
         linkRec.set('valid_clicks_count', 0)
         linkRec.set('conversions_count', 0)
@@ -119,6 +121,9 @@ routerAdd(
         linkRec.set('destination_url', finalDestUrl)
         if (publicationId && !linkRec.getString('publication_id')) {
           linkRec.set('publication_id', publicationId)
+        }
+        if (body.is_test_data !== undefined) {
+          linkRec.set('is_test_data', isTestData)
         }
         $app.save(linkRec)
       }

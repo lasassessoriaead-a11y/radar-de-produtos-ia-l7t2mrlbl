@@ -137,6 +137,7 @@ routerAdd('GET', '/t/{slug}', (e) => {
       clickRec.set('channel', linkRecord.getString('channel'))
       clickRec.set('sub_id', linkRecord.getString('sub_id'))
       clickRec.set('is_valid', isValidClick && !invalidReason)
+      clickRec.set('is_test_data', linkRecord.getBool('is_test_data'))
       clickRec.set('invalid_reason', invalidReason)
       clickRec.set('referrer_host', referer ? referer.slice(0, 200) : '')
       clickRec.set('user_agent_short', ua ? ua.slice(0, 150) : '')

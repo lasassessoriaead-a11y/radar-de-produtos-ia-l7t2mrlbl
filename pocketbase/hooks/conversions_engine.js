@@ -13,6 +13,7 @@ routerAdd(
 
     const body = e.requestInfo().body || {}
     const rows = Array.isArray(body.rows) ? body.rows : []
+    const isTestDataImport = body.is_test_data === true
 
     if (rows.length === 0) {
       return e.badRequestError('Nenhuma linha de conversão recebida para importação.')
@@ -63,6 +64,7 @@ routerAdd(
         const status = (row.status || 'confirmed').toLowerCase()
         const convDate = row.date || row.data || new Date().toISOString()
         const rawProductName = (row.product_name || row.produto || '').trim().toLowerCase()
+        const isRowTest = row.is_test_data !== undefined ? !!row.is_test_data : isTestDataImport
 
         let attributionConfidence = 'unattributed'
         let attributionMethod = 'none'
@@ -133,6 +135,7 @@ routerAdd(
         convRec.set('attribution_method', attributionMethod)
         convRec.set('conversion_date', convDate)
         convRec.set('raw_payload', row)
+        convRec.set('is_test_data', isRowTest)
         $app.save(convRec)
 
         // If matched to variation and confirmed/probable, update variation counters
@@ -202,6 +205,7 @@ routerAdd(
     const body = e.requestInfo().body || {}
     const saleAmount = parseFloat(body.sale_amount || '0')
     const commissionAmount = parseFloat(body.commission_amount || '0')
+    const isTestDataManual = !!body.is_test_data
 
     if (saleAmount <= 0 && commissionAmount <= 0) {
       return e.badRequestError('Valor da venda ou comissão é obrigatório.')
@@ -230,6 +234,7 @@ routerAdd(
       convRec.set('attribution_method', 'manual_entry')
       convRec.set('conversion_date', body.conversion_date || new Date().toISOString())
       convRec.set('notes', body.notes || '')
+      convRec.set('is_test_data', isTestDataManual)
       $app.save(convRec)
 
       return e.json(200, {
@@ -259,7 +264,7 @@ routerAdd(
         pubs = $app.findRecordsByFilter('publications', `user_id = '${userId}'`, '-created', 500, 0)
       } catch (_) {}
 
-      // 2. Click events count (Raw vs Valid)
+      // 2. Click events count (Raw vs Valid) — filter out test data for genuine KPIs
       let clicks = []
       try {
         clicks = $app.findRecordsByFilter(
@@ -295,12 +300,16 @@ routerAdd(
         )
       } catch (_) {}
 
+      // EXCLUIR DADOS DE TESTE (is_test_data = true) DAS MÉTRICAS REAIS
+      const realClicks = clicks.filter((c) => !c.getBool('is_test_data'))
+      const realConvs = convs.filter((c) => !c.getBool('is_test_data'))
+
       const totalPublications = pubs.length
-      const rawClicks = clicks.length
-      const validClicks = clicks.filter((c) => c.getBool('is_valid')).length
+      const rawClicks = realClicks.length
+      const validClicks = realClicks.filter((c) => c.getBool('is_valid')).length
       const botClicks = rawClicks - validClicks
 
-      const confirmedConvs = convs.filter((c) => c.getString('status') === 'confirmed')
+      const confirmedConvs = realConvs.filter((c) => c.getString('status') === 'confirmed')
       const totalSales = confirmedConvs.reduce(
         (acc, c) => acc + (c.getFloat('sale_amount') || 0),
         0,
@@ -333,7 +342,7 @@ routerAdd(
         channelMap[ch].publications++
       })
 
-      clicks.forEach((c) => {
+      realClicks.forEach((c) => {
         const ch = c.getString('channel') || 'Outro'
         if (!channelMap[ch]) {
           channelMap[ch] = {
