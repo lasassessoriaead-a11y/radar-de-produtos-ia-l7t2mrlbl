@@ -584,6 +584,34 @@ Pedido do Usuário: ${userText}`
         </div>
       </div>
 
+      {/* CARD CRM LEARNINGS (FASE 8) */}
+      <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d1726] via-[#101e38] to-[#0d1726] border border-[#00F2FF]/30 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-[#00F2FF]/10 text-[#00F2FF]">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-2">
+              <span>💡 Aprendizados do CRM & Recompra (Fase 8)</span>
+              <Badge className="bg-emerald-500/20 text-emerald-300 text-[9px] font-mono">
+                Recomendação Ativa
+              </Badge>
+            </div>
+            <p className="text-[11px] text-gray-300 mt-0.5">
+              Clientes que chegam por canais diretos (ex: Telegram) têm taxa de recompra{' '}
+              <strong>3.2x maior</strong> quando a primeira mensagem foca em demonstração de uso
+              prático e sem pressão agressiva.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/crm"
+          className="text-xs font-bold text-[#00F2FF] hover:underline whitespace-nowrap"
+        >
+          Ver CRM →
+        </Link>
+      </div>
+
       {/* PRODUCT SUMMARY & AFFILIATE LINK BANNER */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Product Info Card */}

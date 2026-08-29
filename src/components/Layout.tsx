@@ -105,6 +105,14 @@ export default function Layout() {
       badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
     },
     {
+      to: '/crm',
+      label: 'CRM & Recompra',
+      icon: User,
+      badge: 'FASE 8',
+      badgeColor:
+        'bg-[#00F2FF]/20 text-[#00F2FF] border-[#00F2FF]/40 shadow-[0_0_8px_rgba(0,242,255,0.2)]',
+    },
+    {
       to: '/laboratorio',
       label: 'Laboratório de Campanhas',
       icon: FlaskConical,

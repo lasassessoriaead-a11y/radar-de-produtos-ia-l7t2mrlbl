@@ -17,6 +17,7 @@ import ImportPage from './pages/Import'
 import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
 import AudienceRadarPage from './pages/AudienceRadar'
+import CRMPage from './pages/CRM'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/cacador" element={<HunterPage />} />
             <Route path="/radar" element={<RadarPage />} />
             <Route path="/publico" element={<AudienceRadarPage />} />
+            <Route path="/crm" element={<CRMPage />} />
             <Route path="/laboratorio" element={<CampaignLabPage />} />
             <Route path="/campanhas" element={<CampaignLibraryPage />} />
             <Route path="/estudio" element={<CreativeStudioPage />} />

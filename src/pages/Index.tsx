@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ExternalLink,
   ShieldCheck,
+  Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScoreRing } from '@/components/ScoreRing'
@@ -331,8 +332,76 @@ export default function Index() {
         </div>
       </div>
 
+      {/* CARD FASE 8: CRM & RELACIONAMENTO / RECOMPRA */}
+      <div className="rounded-2xl border border-[#00F2FF]/30 bg-gradient-to-br from-[#0b1624]/90 via-[#0e192c]/90 to-[#121422]/90 p-5 md:p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-[#1E2942] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#00F2FF]/15 border border-[#00F2FF]/40 text-[#00F2FF]">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">
+                  👥 CRM, Relacionamento & Recompra IA
+                </h2>
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00F2FF]/20 text-[#00F2FF] border border-[#00F2FF]/40 font-mono">
+                  Fase 8 Ativa
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Gestão de leads consentidos, pós-compra estruturado e motor de recomendação
+                inteligente.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/crm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#00F2FF] hover:bg-[#00D4E0] text-xs font-bold text-[#0A0B10] transition-colors self-start md:self-auto shadow-[0_0_15px_rgba(0,242,255,0.25)]"
+          >
+            Abrir Painel CRM
+            <ArrowUpRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-[#1E2942] space-y-1">
+            <span className="text-[10px] font-mono text-gray-400 uppercase">
+              Contatos com Consentimento
+            </span>
+            <div className="text-xl font-black font-mono text-white">6 Contatos</div>
+            <p className="text-[10px] text-emerald-400 font-medium">Bases LGPD ativas</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-900/40 space-y-1">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase">
+              Clientes Confirmados
+            </span>
+            <div className="text-xl font-black font-mono text-emerald-400">2 Clientes</div>
+            <p className="text-[10px] text-slate-400 font-medium">1 com recompra recorrente</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-[#7000FF]/40 space-y-1">
+            <span className="text-[10px] font-mono text-[#00F2FF] uppercase">
+              Recomendações Prontas
+            </span>
+            <div className="text-xl font-black font-mono text-[#00F2FF]">Score 89+</div>
+            <p className="text-[10px] text-slate-400 font-medium">Sinergia por DNA de vencedores</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-900/40 space-y-1">
+            <span className="text-[10px] font-mono text-[#00E676] uppercase">
+              LTV Médio (Comissão)
+            </span>
+            <div className="text-xl font-black font-mono text-[#00E676]">R$ 48,08</div>
+            <p className="text-[10px] text-emerald-300 font-medium">Comissão real apurada</p>
+          </div>
+        </div>
+      </div>
+
       {/* CARD FASE 7: RADAR DE PÚBLICO & DEMANDA DE MERCADO (Regra 35) */}
       <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-[#0a1a15]/90 via-[#0a141b]/90 to-[#0e1622]/90 p-5 md:p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
+        {' '}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-emerald-900/40 pb-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-400">
@@ -362,7 +431,6 @@ export default function Index() {
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
-
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 text-xs">
           <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-900/40 space-y-1">
             <span className="text-[10px] font-mono text-gray-400 uppercase">

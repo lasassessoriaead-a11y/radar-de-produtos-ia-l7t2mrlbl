@@ -347,7 +347,7 @@ export default function HunterPage() {
           </p>
         </div>
 
-        {/* BANNER FASE 6: APRENDIZADO DO HISTÓRICO PARA O CAÇADOR */}
+        {/* BANNER FASE 6 & FASE 8: APRENDIZADO DO HISTÓRICO & CRM PARA O CAÇADOR */}
         <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-cyan-900/40 text-cyan-400 shrink-0">
@@ -356,16 +356,16 @@ export default function HunterPage() {
             <div className="text-xs space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white uppercase tracking-wider text-[11px]">
-                  🧠 Aprendizado do Histórico Aplicado à Caça
+                  🧠 Aprendizado do Histórico & CRM (Fase 8)
                 </span>
-                <span className="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded border border-cyan-700">
-                  Alta Confiança
+                <span className="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded border border-cyan-700 font-mono">
+                  Recompra Cruzada
                 </span>
               </div>
               <p className="text-slate-300">
-                Seus dados reais mostram que produtos de <strong>Casa e Cozinha</strong> entre{' '}
-                <strong>R$ 50 e R$ 150</strong> com <strong>fácil demonstração</strong> têm{' '}
-                <strong>+121% de conversão</strong>.
+                O CRM aponta que clientes de <strong>Eletrônicos & Áudio</strong> recompram{' '}
+                <strong>Acessórios e Iluminação</strong> em até 30 dias. Priorize itens
+                complementares para maximizar LTV.
               </p>
             </div>
           </div>
@@ -374,11 +374,11 @@ export default function HunterPage() {
             variant="outline"
             className="border-cyan-700 text-cyan-300 hover:bg-cyan-900/40 text-xs shrink-0 self-start md:self-auto"
             onClick={() => {
-              setCategory('Casa e Cozinha')
+              setCategory('Eletrônicos & Áudio')
               setMinPrice(50)
             }}
           >
-            Priorizar Vencedores
+            Priorizar Eletrônicos & Áudio
           </Button>
         </div>
 

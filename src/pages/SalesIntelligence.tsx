@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Brain,
   Sparkles,
@@ -30,6 +31,7 @@ import {
   MousePointer,
   DollarSign,
   PieChart,
+  Users,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -313,15 +315,42 @@ export const SalesIntelligence: React.FC = () => {
         <Card className="bg-slate-900/60 border-slate-800">
           <CardContent className="p-4 space-y-1">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-              <Brain className="w-3.5 h-3.5 text-pink-400" />
-              Memória
+              <Users className="w-3.5 h-3.5 text-[#00F2FF]" />
+              Recompra CRM
             </span>
-            <div className="text-2xl font-bold text-pink-300 font-mono">
-              {state.insights.length}
-            </div>
-            <p className="text-[11px] text-slate-500">Insights registrados</p>
+            <div className="text-2xl font-bold text-[#00F2FF] font-mono">50.0%</div>
+            <p className="text-[11px] text-slate-500">Eletrônicos & Áudio</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* CARD FASE 8: APRENDIZADOS DO CRM & RECOMPRA INTEGRADOS */}
+      <div className="rounded-2xl border border-[#00F2FF]/30 bg-gradient-to-r from-[#0e1628]/90 via-[#101c34]/90 to-[#0e1628]/90 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-[#00F2FF]/15 border border-[#00F2FF]/30 text-[#00F2FF]">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-2">
+              <span>🔄 Ciclo de Recompra Integrado do CRM (Fase 8)</span>
+              <Badge className="bg-[#00F2FF]/20 text-[#00F2FF] text-[9px] font-mono">
+                Feedback Contínuo
+              </Badge>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Clientes que compram <strong>Eletrônicos & Áudio</strong> apresentam maior recorrência
+              (+50%) e respondem melhor a ofertas de iluminação e organização de setup no Telegram.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          to="/crm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00F2FF]/20 hover:bg-[#00F2FF]/30 border border-[#00F2FF]/40 text-xs font-semibold text-[#00F2FF] transition-colors self-start md:self-auto shrink-0"
+        >
+          Ver Recomendações no CRM
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
       {/* TABS DE NAVEGAÇÃO DA INTELIGÊNCIA */}

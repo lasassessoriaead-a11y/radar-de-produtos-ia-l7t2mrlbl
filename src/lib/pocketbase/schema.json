@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T17:50:46.952Z",
+  "generatedAt": "2026-08-29T18:24:02.913Z",
   "collections": [
     {
       "name": "users",
@@ -4155,6 +4155,601 @@
         "CREATE INDEX idx_leads_score ON inbound_leads (lead_score DESC)",
         "CREATE INDEX idx_leads_consent ON inbound_leads (consent_status)"
       ]
+    },
+    {
+      "name": "crm_contacts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "identifier",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "landing_page",
+            "form",
+            "telegram",
+            "newsletter",
+            "campaign_page",
+            "own_channel",
+            "whatsapp",
+            "other"
+          ]
+        },
+        {
+          "name": "origin_source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lead_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "first_product_interest",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "categories_of_interest",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lead_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "relationship_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "novo",
+            "interessado",
+            "engajado",
+            "qualificado",
+            "em_decisao",
+            "cliente",
+            "cliente_recorrente",
+            "sem_interesse",
+            "opt_out",
+            "inativo"
+          ]
+        },
+        {
+          "name": "is_customer",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_recurring_customer",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "purchases_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_sales_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_commission_earned",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "average_commission",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "first_purchase_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_purchase_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_interaction_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_click_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "purchased_products",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "next_best_action",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "next_best_action_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "preferences",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "feedback_history",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timeline",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "internal_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_crm_ident ON crm_contacts (identifier)",
+        "CREATE INDEX idx_crm_status ON crm_contacts (status)",
+        "CREATE INDEX idx_crm_rel_score ON crm_contacts (relationship_score DESC)",
+        "CREATE INDEX idx_crm_cust ON crm_contacts (is_customer)",
+        "CREATE INDEX idx_crm_rec_cust ON crm_contacts (is_recurring_customer)"
+      ]
+    },
+    {
+      "name": "crm_recommendations",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "contact_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contact_identifier",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "product_title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "product_image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_commission",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recommendation_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["complementar", "reposicao", "upsell", "cross_sell", "novo_interesse"]
+        },
+        {
+          "name": "recommendation_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "previous_product_title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suggested_content_angle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suggested_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "sugerida",
+            "aprovada",
+            "utilizada_em_campanha",
+            "enviada_manualmente",
+            "descartada",
+            "convertida"
+          ]
+        },
+        {
+          "name": "cadence_check_passed",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cadence_block_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_recs_contact ON crm_recommendations (contact_id)",
+        "CREATE INDEX idx_recs_prod ON crm_recommendations (product_id)",
+        "CREATE INDEX idx_recs_score ON crm_recommendations (recommendation_score DESC)",
+        "CREATE INDEX idx_recs_status ON crm_recommendations (status)"
+      ]
+    },
+    {
+      "name": "crm_consent_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "contact_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "identifier",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "authorized_purpose",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "consent_text_version",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "revoked", "updated", "expired"]
+        },
+        {
+          "name": "granted_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "revoked_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origin_source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_masked",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_agent_short",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_test_data",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cons_ident ON crm_consent_logs (identifier)",
+        "CREATE INDEX idx_cons_status ON crm_consent_logs (status)",
+        "CREATE INDEX idx_cons_contact ON crm_consent_logs (contact_id)"
+      ]
+    },
+    {
+      "name": "crm_cadence_settings",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "min_days_between_messages",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "max_messages_per_week",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allow_educational_content",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allow_product_recommendations",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "allow_post_purchase_followup",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quiet_hours_start",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quiet_hours_end",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_cad_user_channel ON crm_cadence_settings (channel)"]
     }
   ]
 }
