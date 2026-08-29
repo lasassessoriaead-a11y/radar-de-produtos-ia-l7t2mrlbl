@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T18:15:49.920Z",
+  "generatedAt": "2026-08-29T14:58:31.026Z",
   "collections": [
     {
       "name": "users",
@@ -261,6 +261,539 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "discovered_products",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "external_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "niche",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "promo_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_is_estimated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reviews_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rating",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "seller",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "affiliate_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "competition_level",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "trends_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "demand_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "opportunity_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "opportunity_level",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["hot", "good", "test", "low"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pending", "approved", "discarded"]
+        },
+        {
+          "name": "ai_analysis",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_strengths",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_weaknesses",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_target_audience",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_selling_angle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ai_risk_level",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "radar_product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "raw_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_disc_ext_plat ON discovered_products (platform, external_id)",
+        "CREATE INDEX idx_disc_status ON discovered_products (status)",
+        "CREATE INDEX idx_disc_score ON discovered_products (opportunity_score DESC)",
+        "CREATE INDEX idx_disc_category ON discovered_products (category)"
+      ]
+    },
+    {
+      "name": "product_snapshots",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discovered_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "promo_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reviews_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rating",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "opportunity_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ranking_position",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "snapshot_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_snap_prod_id ON product_snapshots (product_id)",
+        "CREATE INDEX idx_snap_disc_id ON product_snapshots (discovered_id)",
+        "CREATE INDEX idx_snap_ext_id ON product_snapshots (external_id)",
+        "CREATE INDEX idx_snap_created ON product_snapshots (created DESC)"
+      ]
+    },
+    {
+      "name": "watchlist",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discovered_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_commission_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_commission_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_commission_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_rating",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_rating",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "initial_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "trend_signal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_alert_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_watch_user ON watchlist (user_id)",
+        "CREATE INDEX idx_watch_ext ON watchlist (platform, external_id)",
+        "CREATE INDEX idx_watch_score ON watchlist (current_score DESC)"
+      ]
     }
   ]
 }
