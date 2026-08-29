@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Radar,
+  Compass,
   UploadCloud,
   Bot,
   Settings,
@@ -80,11 +81,18 @@ export default function Layout() {
       badge: null,
     },
     {
+      to: '/cacador',
+      label: 'Caçador de Oportunidades',
+      icon: Compass,
+      badge: 'NOVO',
+      badgeColor: 'bg-[#FF3D00]/20 text-[#FF3D00] border-[#FF3D00]/30',
+    },
+    {
       to: '/radar',
       label: 'Radar de Produtos',
       icon: Radar,
       badge: 'PRO',
-      badgeColor: 'bg-[#FF3D00]/20 text-[#FF3D00] border-[#FF3D00]/30',
+      badgeColor: 'bg-[#00F2FF]/20 text-[#00F2FF] border-[#00F2FF]/30',
     },
     {
       to: '/analista',

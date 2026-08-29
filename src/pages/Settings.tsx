@@ -131,7 +131,9 @@ export default function SettingsPage() {
 
             <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] flex items-center justify-between">
               <span className="text-gray-400">Coleções Acessadas:</span>
-              <span className="font-mono text-[#00E676]">products, ai_insights</span>
+              <span className="font-mono text-[#00E676]">
+                products, discovered_products, ai_insights
+              </span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] flex items-center justify-between">
@@ -141,6 +143,69 @@ export default function SettingsPage() {
                 Operacional
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mercado Livre API Token Configuration */}
+      <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#212538]">
+          <div className="flex items-center gap-2.5">
+            <Key className="w-5 h-5 text-[#FFE600]" />
+            <div>
+              <h3 className="text-sm font-bold text-white">
+                Conector da API do Mercado Livre (Site MLB)
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Configure seu Access Token gratuito do Mercado Livre para buscas em tempo real
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono px-2.5 py-1 rounded bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 font-semibold">
+            Conectado (Fase 2)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-2">
+            <h4 className="font-bold text-white flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-[#00F2FF]" />
+              Como obter seu token gratuito do Mercado Livre:
+            </h4>
+            <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[11px] leading-relaxed">
+              <li>
+                Acesse o portal de desenvolvedores do Mercado Livre
+                (developers.mercadolibre.com.br).
+              </li>
+              <li>Crie uma aplicação gratuita para obter seu Client ID e Client Secret.</li>
+              <li>Gere o Access Token temporário de teste para efetuar chamadas na API.</li>
+              <li>Ou configure a variável de ambiente MERCADO_LIVRE_ACCESS_TOKEN no backend.</li>
+            </ol>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-3">
+            <h4 className="font-bold text-white flex items-center gap-1.5">
+              <Database className="w-4 h-4 text-[#FFE600]" />
+              Dados Fornecidos pelo Conector ML:
+            </h4>
+            <ul className="space-y-1 text-gray-300 text-[11px]">
+              <li>
+                <strong className="text-white">✓ Dados Reais:</strong> Título, Imagem, Preço, Preço
+                Original, Quantidade de Vendas, Reputação/Avaliação, Vendedor, Link.
+              </li>
+              <li>
+                <strong className="text-[#00F2FF]">✓ Calculado:</strong> Score de Oportunidade
+                (0-100), Nível (Hot/Good/Test/Low).
+              </li>
+              <li>
+                <strong className="text-[#C084FC]">✓ Estimado pela IA:</strong> Potencial de
+                conversão, pontos fortes/fracos, público e ângulo.
+              </li>
+              <li>
+                <strong className="text-gray-400">✕ Indisponível:</strong> Comissão de afiliado e
+                link direto de afiliado (não fornecidos na API de catálogo do ML).
+              </li>
+            </ul>
           </div>
         </div>
       </div>

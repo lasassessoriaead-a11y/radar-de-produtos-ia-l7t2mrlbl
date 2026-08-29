@@ -37,7 +37,7 @@ routerAdd(
         let mlUrl = 'https://api.mercadolibre.com/sites/MLB/search?'
         const params = []
         if (query) params.push('q=' + encodeURIComponent(query))
-        if (category && category !== 'Todas') {
+        if (category && category !== 'Todas' && category !== 'Geral') {
           // If category is not in query, append it
           if (!query.toLowerCase().includes(category.toLowerCase())) {
             params.push('q=' + encodeURIComponent(category + ' ' + query))
@@ -72,10 +72,10 @@ routerAdd(
         } else if (res.statusCode === 403 || res.statusCode === 401) {
           apiStatus = 'token_required'
           requiresAuthMessage =
-            'A API do Mercado Livre requer um Access Token para buscas diretas. Adicione seu token em Configurações > Token Mercado Livre.'
+            'Conecte seu token gratuito do Mercado Livre para ativar a busca em tempo real. Você pode gerá-lo no Mercado Livre Developers e informá-lo em Configurações > Token Mercado Livre.'
         } else {
           apiStatus = 'api_error'
-          requiresAuthMessage = `Mercado Livre retornou status HTTP ${res.statusCode}. Verifique os parâmetros ou seu token.`
+          requiresAuthMessage = `Mercado Livre retornou status HTTP ${res.statusCode}. Verifique os parâmetros ou seu token de acesso.`
         }
       } catch (httpErr) {
         console.log('HTTP error fetching ML API: ' + httpErr)

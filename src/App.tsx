@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/context/AuthContext'
 import Index from './pages/Index'
 import RadarPage from './pages/Radar'
+import HunterPage from './pages/Hunter'
 import ImportPage from './pages/Import'
 import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
@@ -21,6 +22,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/cacador" element={<HunterPage />} />
             <Route path="/radar" element={<RadarPage />} />
             <Route path="/importar" element={<ImportPage />} />
             <Route path="/analista" element={<AnalystPage />} />
