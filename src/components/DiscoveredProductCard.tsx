@@ -2,26 +2,31 @@ import React from 'react'
 import {
   ExternalLink,
   Sparkles,
+  TrendingUp,
   DollarSign,
   Star,
   ShoppingCart,
-  CheckCircle2,
-  XCircle,
   Bookmark,
   BookmarkCheck,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Tag,
+  AlertCircle,
   HelpCircle,
+  FlaskConical,
   Info,
   ShieldCheck,
   Calculator,
   Cpu,
-  AlertCircle,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { ScoreRing } from './ScoreRing'
 import { OpportunityBadge } from './OpportunityBadge'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import type { DiscoveredProductRecord } from '@/types/product'
 import { cn } from '@/lib/utils'
-
 interface DiscoveredProductCardProps {
   product: DiscoveredProductRecord
   onApprove: (product: DiscoveredProductRecord) => void
@@ -45,6 +50,7 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
   isDiscarding = false,
   rank,
 }) => {
+  const navigate = useNavigate()
   const price = product.promo_price && product.promo_price > 0 ? product.promo_price : product.price
   const hasPromo =
     product.promo_price && product.promo_price < product.price && product.promo_price > 0
@@ -255,6 +261,17 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
             </Button>
 
             {/* Approve / Save to Radar */}
+            {/* Criar Campanha no Laboratório */}
+            <Button
+              size="sm"
+              onClick={() => navigate(`/laboratorio?discoveredId=${product.id}`)}
+              className="h-8 px-2 text-xs font-bold bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] gap-1 shadow-[0_0_10px_rgba(0,242,255,0.2)]"
+              title="Criar Campanha no Laboratório de Criação"
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              <span className="truncate">Campanha</span>
+            </Button>
+
             <Button
               size="sm"
               disabled={isApproving || isDiscarding}

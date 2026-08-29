@@ -8,11 +8,15 @@ import {
   ShoppingCart,
   Tag,
   Eye,
+  FlaskConical,
+  Layers,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { ScoreRing } from './ScoreRing'
 import { OpportunityBadge } from './OpportunityBadge'
 import { Button } from '@/components/ui/button'
 import type { ProductRecord } from '@/types/product'
+import { campaignService } from '@/services/campaigns'
 import { cn } from '@/lib/utils'
 
 interface ProductCardProps {
@@ -28,6 +32,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onAskAi,
   viewMode = 'grid',
 }) => {
+  const navigate = useNavigate()
+  const [campaignStats, setCampaignStats] = React.useState<{ count: number; best_score: number }>({
+    count: 0,
+    best_score: 0,
+  })
+
+  React.useEffect(() => {
+    if (product.id) {
+      campaignService.getProductCampaignStats(product.id).then((st) => setCampaignStats(st))
+    }
+  }, [product.id])
   const price = product.promo_price || product.price
   const hasPromo = product.promo_price && product.promo_price < product.price
   const commAmount = product.commission_amount || price * (product.commission_rate / 100)
@@ -118,16 +133,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Eye className="w-3.5 h-3.5 text-[#00F2FF]" />
               Ver Raio-X
             </Button>
-            {onAskAi && (
-              <Button
-                size="sm"
-                onClick={() => onAskAi(product)}
-                className="h-8 bg-[#7000FF] hover:bg-[#8519FF] text-white text-xs gap-1 shadow-[0_0_12px_rgba(112,0,255,0.3)]"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#00F2FF]" />
-                IA
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={() => navigate(`/laboratorio?productId=${product.id}`)}
+              className="h-8 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-bold text-xs gap-1 shadow-[0_0_12px_rgba(0,242,255,0.25)]"
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              Criar Campanha
+            </Button>
           </div>
         </div>
       </div>
@@ -236,6 +249,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           </div>
 
+          {/* Campaign stats banner if exists (Rule 18) */}
+          {campaignStats.count > 0 && (
+            <div
+              onClick={() => navigate(`/laboratorio?productId=${product.id}`)}
+              className="cursor-pointer flex items-center justify-between p-2 rounded-xl bg-[#00F2FF]/10 border border-[#00F2FF]/30 text-[10px] font-mono transition-all hover:bg-[#00F2FF]/15"
+            >
+              <span className="text-[#00F2FF] font-bold flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Campanhas: {campaignStats.count}
+              </span>
+              <span className="text-white">
+                Melhor Score Pré-teste:{' '}
+                <strong className="text-[#00E676]">{campaignStats.best_score}/100</strong>
+              </span>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <Button
@@ -248,25 +277,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               Ver Raio-X
             </Button>
 
-            {product.affiliate_url ? (
-              <a
-                href={product.affiliate_url}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] text-[#0A0B10] hover:opacity-90 transition-opacity font-mono"
-              >
-                Divulgar
-                <ExternalLink className="w-3 h-3 ml-1" />
-              </a>
-            ) : (
-              <Button
-                size="sm"
-                onClick={() => onOpenDetails(product)}
-                className="w-full h-8 text-xs font-semibold bg-[#7000FF] hover:bg-[#8519FF] text-white font-mono"
-              >
-                Analisar
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={() => navigate(`/laboratorio?productId=${product.id}`)}
+              className="w-full h-8 text-xs font-bold bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-mono shadow-[0_0_12px_rgba(0,242,255,0.25)] flex items-center justify-center gap-1"
+            >
+              <FlaskConical className="w-3 h-3" />
+              Criar Campanha
+            </Button>
           </div>
         </div>
       </div>

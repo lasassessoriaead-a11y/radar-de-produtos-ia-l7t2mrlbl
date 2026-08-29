@@ -4,6 +4,8 @@ import {
   LayoutDashboard,
   Radar,
   Compass,
+  FlaskConical,
+  Layers,
   UploadCloud,
   Bot,
   Settings,
@@ -93,6 +95,19 @@ export default function Layout() {
       icon: Radar,
       badge: 'PRO',
       badgeColor: 'bg-[#00F2FF]/20 text-[#00F2FF] border-[#00F2FF]/30',
+    },
+    {
+      to: '/laboratorio',
+      label: 'Laboratório de Campanhas',
+      icon: FlaskConical,
+      badge: 'FASE 3',
+      badgeColor: 'bg-[#7000FF]/20 text-[#00F2FF] border-[#7000FF]/40',
+    },
+    {
+      to: '/campanhas',
+      label: 'Minhas Campanhas',
+      icon: Layers,
+      badge: null,
     },
     {
       to: '/analista',

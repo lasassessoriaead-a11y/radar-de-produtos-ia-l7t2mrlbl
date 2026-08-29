@@ -20,7 +20,9 @@ import {
   User,
   ShoppingBag,
   Store,
+  FlaskConical,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { ProductRecord } from '@/types/product'
 import { aiService } from '@/services/products'
 
@@ -37,6 +39,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   onAskChatNavigate,
 }) => {
+  const navigate = useNavigate()
   const [copiedLink, setCopiedLink] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'factors' | 'ai' | 'chat'>('overview')
 
@@ -155,11 +158,25 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   href={product.product_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-md text-xs font-semibold h-8 px-3 bg-[#1F2335] hover:bg-[#282D45] text-white border border-[#2E3552]"
+                  className="inline-flex items-center text-xs font-mono text-[#00F2FF] hover:underline"
                 >
-                  Ver na Loja
+                  Ver no Mercado Livre
                   <ExternalLink className="w-3 h-3 ml-1.5" />
                 </a>
+              )}
+
+              {product && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onClose()
+                    navigate(`/laboratorio?productId=${product.id}`)
+                  }}
+                  className="h-8 px-3 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-bold text-xs gap-1.5 shadow-[0_0_12px_rgba(0,242,255,0.25)] font-mono mt-1"
+                >
+                  <FlaskConical className="w-3.5 h-3.5" />
+                  Criar Campanha
+                </Button>
               )}
             </div>
           </div>

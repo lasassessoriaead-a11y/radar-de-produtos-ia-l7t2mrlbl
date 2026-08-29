@@ -13,7 +13,9 @@ import {
   History,
   ShieldCheck,
   CheckCircle2,
+  FlaskConical,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ScoreRing } from '@/components/ScoreRing'
 import { watchlistService } from '@/services/hunter'
@@ -26,6 +28,7 @@ interface WatchlistTabProps {
 }
 
 export const WatchlistTab: React.FC<WatchlistTabProps> = ({ onApproveToRadar }) => {
+  const navigate = useNavigate()
   const [items, setItems] = useState<WatchlistItemRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedItemSnapshots, setSelectedItemSnapshots] = useState<ProductSnapshotRecord[]>([])
@@ -299,6 +302,16 @@ export const WatchlistTab: React.FC<WatchlistTabProps> = ({ onApproveToRadar }) 
                       {isExpanded ? 'Ocultar Histórico' : 'Histórico (Snapshots)'}
                     </Button>
 
+                    <Button
+                      size="sm"
+                      onClick={() => navigate(`/laboratorio?discoveredId=${item.id}`)}
+                      className="h-8 px-2.5 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-bold text-xs gap-1 shadow-[0_0_10px_rgba(0,242,255,0.2)]"
+                      title="Criar Campanha no Laboratório"
+                    >
+                      <FlaskConical className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Campanha</span>
+                    </Button>
+
                     {item.product_url && (
                       <a
                         href={item.product_url}
@@ -307,10 +320,9 @@ export const WatchlistTab: React.FC<WatchlistTabProps> = ({ onApproveToRadar }) 
                         className="p-2 rounded-lg border border-[#2A2F45] bg-[#0E1018] hover:bg-[#1C2034] text-gray-300 hover:text-white"
                         title="Ver produto no marketplace"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
                       </a>
                     )}
-
                     <Button
                       variant="ghost"
                       size="sm"

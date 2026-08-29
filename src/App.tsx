@@ -7,6 +7,8 @@ import { AuthProvider } from '@/context/AuthContext'
 import Index from './pages/Index'
 import RadarPage from './pages/Radar'
 import HunterPage from './pages/Hunter'
+import CampaignLabPage from './pages/CampaignLab'
+import CampaignLibraryPage from './pages/CampaignLibrary'
 import ImportPage from './pages/Import'
 import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/cacador" element={<HunterPage />} />
             <Route path="/radar" element={<RadarPage />} />
+            <Route path="/laboratorio" element={<CampaignLabPage />} />
+            <Route path="/campanhas" element={<CampaignLibraryPage />} />
             <Route path="/importar" element={<ImportPage />} />
             <Route path="/analista" element={<AnalystPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />

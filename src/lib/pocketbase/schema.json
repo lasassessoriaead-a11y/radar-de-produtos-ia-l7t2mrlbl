@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T14:58:31.026Z",
+  "generatedAt": "2026-08-29T15:35:51.824Z",
   "collections": [
     {
       "name": "users",
@@ -793,6 +793,541 @@
         "CREATE INDEX idx_watch_user ON watchlist (user_id)",
         "CREATE INDEX idx_watch_ext ON watchlist (platform, external_id)",
         "CREATE INDEX idx_watch_score ON watchlist (current_score DESC)"
+      ]
+    },
+    {
+      "name": "campaigns",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discovered_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "product_image",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "platform",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "affiliate_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "affiliate_is_configured",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price_at_creation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "promo_price_at_creation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_rate_at_creation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_amount_at_creation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "selected_angle_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "selected_angle_title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_audience",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recommended_channels",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_format",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "draft",
+            "in_review",
+            "approved",
+            "needs_revision",
+            "archived",
+            "published",
+            "paused",
+            "winner",
+            "loser"
+          ]
+        },
+        {
+          "name": "product_intelligence",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "selling_angles",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hooks_bank",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "generated_copies",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_scripts",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "score_breakdown",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "compliance_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["approved", "needs_revision", "blocked"]
+        },
+        {
+          "name": "compliance_report",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_camp_user ON campaigns (user_id)",
+        "CREATE INDEX idx_camp_prod_id ON campaigns (product_id)",
+        "CREATE INDEX idx_camp_status ON campaigns (status)",
+        "CREATE INDEX idx_camp_score ON campaigns (estimated_score DESC)",
+        "CREATE INDEX idx_camp_created ON campaigns (created DESC)"
+      ]
+    },
+    {
+      "name": "campaign_variations",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "version_letter",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hypothesis_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hypothesis_details",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "angle_title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hook_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hook_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "copy_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cta_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cta_objective",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "format",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_scenes",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "score_breakdown",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "compliance_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["approved", "needs_revision", "blocked"]
+        },
+        {
+          "name": "compliance_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "views",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "retention_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ctr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_commission",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ad_spend",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "roi",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_winner",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_var_camp ON campaign_variations (campaign_id)",
+        "CREATE INDEX idx_var_letter ON campaign_variations (campaign_id, version_letter)"
+      ]
+    },
+    {
+      "name": "campaign_hooks",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hook_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hook_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "curiosity",
+            "problem",
+            "demonstration",
+            "question",
+            "discovery",
+            "comparison",
+            "benefit",
+            "identification"
+          ]
+        },
+        {
+          "name": "target_audience",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "strength_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "confidence_level",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_hook_camp ON campaign_hooks (campaign_id)",
+        "CREATE INDEX idx_hook_type ON campaign_hooks (hook_type)"
       ]
     }
   ]
