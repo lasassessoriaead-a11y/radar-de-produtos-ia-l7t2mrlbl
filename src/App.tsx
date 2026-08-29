@@ -9,6 +9,7 @@ import RadarPage from './pages/Radar'
 import HunterPage from './pages/Hunter'
 import CampaignLabPage from './pages/CampaignLab'
 import CampaignLibraryPage from './pages/CampaignLibrary'
+import CreativeStudioPage from './pages/CreativeStudio'
 import ImportPage from './pages/Import'
 import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/radar" element={<RadarPage />} />
             <Route path="/laboratorio" element={<CampaignLabPage />} />
             <Route path="/campanhas" element={<CampaignLibraryPage />} />
+            <Route path="/estudio" element={<CreativeStudioPage />} />
             <Route path="/importar" element={<ImportPage />} />
             <Route path="/analista" element={<AnalystPage />} />
             <Route path="/configuracoes" element={<SettingsPage />} />

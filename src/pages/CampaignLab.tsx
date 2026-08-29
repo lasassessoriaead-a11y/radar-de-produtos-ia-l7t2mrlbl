@@ -550,15 +550,36 @@ Pedido do Usuário: ${userText}`
           </Button>
 
           {hasGenerated && (
-            <Button
-              size="sm"
-              onClick={handleSaveCampaign}
-              disabled={isSaving}
-              className="h-9 px-4 bg-[#7000FF] hover:bg-[#8519FF] text-white font-bold text-xs gap-1.5 shadow-[0_0_15px_rgba(112,0,255,0.3)]"
-            >
-              <Save className="w-3.5 h-3.5" />
-              {isSaving ? 'Salvando...' : 'Salvar Campanha'}
-            </Button>
+            <>
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (savedCampaignId) {
+                    navigate(`/estudio?campaignId=${savedCampaignId}&variation=A`)
+                  } else {
+                    toast.info('Salvando campanha antes de abrir o Estúdio Criativo...')
+                    handleSaveCampaign().then(() => {
+                      if (savedCampaignId)
+                        navigate(`/estudio?campaignId=${savedCampaignId}&variation=A`)
+                    })
+                  }
+                }}
+                className="h-9 px-4 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-black text-xs gap-1.5 shadow-[0_0_15px_rgba(0,242,255,0.3)]"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Criar Criativo (Estúdio IA)
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={handleSaveCampaign}
+                disabled={isSaving}
+                className="h-9 px-4 bg-[#7000FF] hover:bg-[#8519FF] text-white font-bold text-xs gap-1.5 shadow-[0_0_15px_rgba(112,0,255,0.3)]"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {isSaving ? 'Salvando...' : 'Salvar Campanha'}
+              </Button>
+            </>
           )}
         </div>
       </div>

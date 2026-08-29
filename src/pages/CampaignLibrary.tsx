@@ -290,12 +290,22 @@ export default function CampaignLibraryPage() {
                   <div className="flex items-center gap-1.5">
                     <Button
                       size="sm"
+                      onClick={() => navigate(`/estudio?campaignId=${camp.id}&variation=A`)}
+                      className="h-8 text-xs bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-bold gap-1 shadow-[0_0_12px_rgba(0,242,255,0.25)]"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Criar Criativo
+                    </Button>
+
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => navigate(`/laboratorio?campaignId=${camp.id}`)}
                       className="h-8 text-xs border-[#2A2F45] bg-[#10121C] hover:bg-[#1C2034] text-gray-200 hover:text-[#00F2FF] gap-1"
+                      title="Editar no Lab"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      Editar no Lab
+                      Lab
                     </Button>
 
                     <Button

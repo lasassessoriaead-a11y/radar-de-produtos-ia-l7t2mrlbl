@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T15:35:51.824Z",
+  "generatedAt": "2026-08-29T16:31:24.194Z",
   "collections": [
     {
       "name": "users",
@@ -1328,6 +1328,682 @@
       "indexes": [
         "CREATE INDEX idx_hook_camp ON campaign_hooks (campaign_id)",
         "CREATE INDEX idx_hook_type ON campaign_hooks (hook_type)"
+      ]
+    },
+    {
+      "name": "brand_kits",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "brand_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "logo_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "secondary_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "accent_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "background_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "text_color",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "font_family",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visual_style",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tone_of_voice",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "social_handle",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signature_tagline",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_default",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_brand_user ON brand_kits (user_id)"]
+    },
+    {
+      "name": "creatives",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "campaign_variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discovered_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "product_image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version_letter",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hypothesis_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "creative_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aspect_ratio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "draft",
+            "generating",
+            "generated",
+            "editing",
+            "in_review",
+            "approved",
+            "ready_to_publish",
+            "archived",
+            "generation_failed"
+          ]
+        },
+        {
+          "name": "visual_concept",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_provider",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_model",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_prompt",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "revised_prompt",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ai_generated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fidelity_disclaimer_required",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "text_layers",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visual_style_overrides",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_storyboard",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_provider",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "narration_voice",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "narration_script",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "subtitles_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "score_breakdown",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "review_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["approved", "needs_revision", "blocked"]
+        },
+        {
+          "name": "review_report",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commercial_validation",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_version",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "views",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "retention_rate",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ctr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversions",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sales_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_commission",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "roi",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_creative_user ON creatives (user_id)",
+        "CREATE INDEX idx_creative_camp ON creatives (campaign_id)",
+        "CREATE INDEX idx_creative_status ON creatives (status)",
+        "CREATE INDEX idx_creative_score ON creatives (creative_score DESC)",
+        "CREATE INDEX idx_creative_type ON creatives (creative_type)"
+      ]
+    },
+    {
+      "name": "creative_versions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "creative_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "creatives"
+        },
+        {
+          "name": "version_number",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "version_tag",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "image_prompt",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "text_layers",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "video_storyboard",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "visual_concept",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_score",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "review_status",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "change_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cvers_creative ON creative_versions (creative_id)",
+        "CREATE INDEX idx_cvers_num ON creative_versions (creative_id, version_number)"
+      ]
+    },
+    {
+      "name": "creative_assets",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "creative_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "asset_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "format_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "version_letter",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "file_url",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mime_type",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "width",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "height",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_ai_generated",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_asset_user ON creative_assets (user_id)",
+        "CREATE INDEX idx_asset_camp ON creative_assets (campaign_id)",
+        "CREATE INDEX idx_asset_type ON creative_assets (asset_type)"
       ]
     }
   ]
