@@ -16,6 +16,7 @@ import { SalesIntelligence } from './pages/SalesIntelligence'
 import ImportPage from './pages/Import'
 import AnalystPage from './pages/Analyst'
 import SettingsPage from './pages/Settings'
+import AudienceRadarPage from './pages/AudienceRadar'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/cacador" element={<HunterPage />} />
             <Route path="/radar" element={<RadarPage />} />
+            <Route path="/publico" element={<AudienceRadarPage />} />
             <Route path="/laboratorio" element={<CampaignLabPage />} />
             <Route path="/campanhas" element={<CampaignLibraryPage />} />
             <Route path="/estudio" element={<CreativeStudioPage />} />

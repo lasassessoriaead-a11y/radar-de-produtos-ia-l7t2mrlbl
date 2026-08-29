@@ -771,6 +771,38 @@ Pedido do Usuário: ${userText}`
             </div>
           </div>
 
+          {/* BANNER FASE 7: RADAR DE PÚBLICO E INSIGHTS DE DEMANDA REAL */}
+          <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex items-start justify-between gap-3 text-left max-w-xl">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-cyan-900/40 text-cyan-400 shrink-0">
+                <Target className="w-5 h-5" />
+              </div>
+              <div className="text-xs space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                    🎯 O Público Está Falando Sobre (Reddit)
+                  </span>
+                  <span className="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded border border-cyan-700 font-mono">
+                    Radar Fase 7
+                  </span>
+                </div>
+                <p className="text-slate-300">
+                  Detectamos alta intenção em <strong>"bateria dura quanto tempo"</strong> e{' '}
+                  <strong>"onde comprar original"</strong>. Use como ângulo ou gancho.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/publico')}
+              className="h-8 text-[10px] border-cyan-500/40 bg-cyan-900/30 text-cyan-200 hover:bg-cyan-800/40 whitespace-nowrap shrink-0"
+            >
+              Ver no Radar
+            </Button>
+          </div>
+
           <Button
             size="lg"
             onClick={handleGenerateFullCampaign}

@@ -22,6 +22,7 @@ import {
   User,
   ShieldCheck,
   Zap,
+  Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -95,6 +96,13 @@ export default function Layout() {
       icon: Radar,
       badge: 'PRO',
       badgeColor: 'bg-[#00F2FF]/20 text-[#00F2FF] border-[#00F2FF]/30',
+    },
+    {
+      to: '/publico',
+      label: 'Radar de Público',
+      icon: Users,
+      badge: 'FASE 7',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
     },
     {
       to: '/laboratorio',
