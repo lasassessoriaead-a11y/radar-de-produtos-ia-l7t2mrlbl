@@ -24,7 +24,13 @@ routerAdd(
       variations = $app.findRecordsByFilter('campaign_variations', '', '-created', 100, 0)
     } catch (_) {}
     try {
-      conversions = $app.findRecordsByFilter('conversions', '', '-conversion_date', 100, 0)
+      conversions = $app.findRecordsByFilter(
+        'conversions',
+        'is_test_data != true',
+        '-conversion_date',
+        100,
+        0,
+      )
     } catch (_) {}
     try {
       products = $app.findRecordsByFilter('products', '', '-opportunity_score', 20, 0)

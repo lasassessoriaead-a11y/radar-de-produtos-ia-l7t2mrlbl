@@ -22,7 +22,13 @@ routerAdd(
       products = $app.findRecordsByFilter('products', '', '-opportunity_score', 100, 0)
     } catch (_) {}
     try {
-      conversions = $app.findRecordsByFilter('conversions', 'is_test_data != true', '-conversion_date', 300, 0)
+      conversions = $app.findRecordsByFilter(
+        'conversions',
+        'is_test_data != true',
+        '-conversion_date',
+        300,
+        0,
+      )
     } catch (_) {}
     try {
       costs = $app.findRecordsByFilter('campaign_costs', '', '-date', 100, 0)

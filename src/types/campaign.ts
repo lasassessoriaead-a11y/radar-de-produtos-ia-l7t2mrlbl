@@ -200,6 +200,7 @@ export interface CampaignRecord {
   compliance_report?: ComplianceReviewReport
   conversation_id?: string
   metadata?: Record<string, unknown>
+  is_test_data?: boolean
   created: string
   updated: string
   // Expanded relation or loaded dynamically

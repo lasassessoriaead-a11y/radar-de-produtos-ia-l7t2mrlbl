@@ -215,6 +215,7 @@ export const publishingService = {
     external_order_id?: string
     channel?: string
     status?: string
+    is_test_data?: boolean
     conversion_date?: string
     notes?: string
   }) {

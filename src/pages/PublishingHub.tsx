@@ -721,18 +721,25 @@ export default function PublishingHub() {
                       </td>
 
                       <td className="py-3 px-3">
-                        <span
-                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border inline-flex items-center gap-1 ${
-                            pub.status === 'published'
-                              ? 'bg-[#00E676]/15 text-[#00E676] border-[#00E676]/30'
-                              : pub.status === 'ready_to_publish'
-                                ? 'bg-[#00F2FF]/15 text-[#00F2FF] border-[#00F2FF]/30'
-                                : 'bg-gray-700/30 text-gray-400 border-gray-600'
-                          }`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                          {pub.status.toUpperCase()}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border inline-flex items-center gap-1 w-fit ${
+                              pub.status === 'published'
+                                ? 'bg-[#00E676]/15 text-[#00E676] border-[#00E676]/30'
+                                : pub.status === 'ready_to_publish'
+                                  ? 'bg-[#00F2FF]/15 text-[#00F2FF] border-[#00F2FF]/30'
+                                  : 'bg-gray-700/30 text-gray-400 border-gray-600'
+                            }`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                            {pub.status.toUpperCase()}
+                          </span>
+                          {matchedCamp?.is_test_data && (
+                            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono w-fit">
+                              DADO DE TESTE
+                            </Badge>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3 px-3">

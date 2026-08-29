@@ -275,10 +275,15 @@ export const SalesIntelligence: React.FC = () => {
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               Vendas
             </span>
-            <div className="text-2xl font-bold text-emerald-300 font-mono">
+            <div className="text-2xl font-bold text-emerald-300 font-mono flex items-center gap-2">
               {state.summary.conversions_count}
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                DADOS REAIS
+              </Badge>
             </div>
-            <p className="text-[11px] text-slate-500">Conv: {state.summary.conversion_rate}%</p>
+            <p className="text-[11px] text-slate-500">
+              Conv: {state.summary.conversion_rate}%
+            </p>{' '}
           </CardContent>
         </Card>
 
@@ -476,6 +481,12 @@ export const SalesIntelligence: React.FC = () => {
                           sampleSummary={ins.sample_summary}
                         />
                         <StatusBadge status={ins.status} />
+                        {(ins.confidence_level === 'insufficient' ||
+                          ins.category_type === 'insufficient_data') && (
+                          <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono">
+                            DECISÃO BASEADA EM AMBIENTE DE TESTE
+                          </Badge>
+                        )}
                       </div>
                       {ins.target_module && (
                         <Badge

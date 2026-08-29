@@ -175,7 +175,7 @@ export async function fetchSalesIntelligenceData(): Promise<IntelligenceState> {
   try {
     conversions = await pb
       .collection('conversions')
-      .getFullList({ sort: '-conversion_date', requestKey: null })
+      .getFullList({ filter: 'is_test_data != true', sort: '-conversion_date', requestKey: null })
   } catch {
     /* intentionally ignored */
   }

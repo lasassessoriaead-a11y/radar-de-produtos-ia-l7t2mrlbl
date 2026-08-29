@@ -874,9 +874,13 @@ export default function OrchestratorPage() {
                               </Badge>
 
                               {/* Test Data Badge */}
-                              {action.is_test_data && (
+                              {action.is_test_data ? (
                                 <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono">
-                                  DADO DE TESTE
+                                  DECISÃO BASEADA EM AMBIENTE DE TESTE
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                                  DADOS REAIS
                                 </Badge>
                               )}
 

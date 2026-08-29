@@ -76,6 +76,7 @@ export default function PerformanceDashboard() {
   const [conversions, setConversions] = useState<ConversionRecord[]>([])
   const [costs, setCosts] = useState<CampaignCostRecord[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([])
+  const [showTestDataOnly, setShowTestDataOnly] = useState(false)
 
   // AI Insights State
   const [insights, setInsights] = useState<AiPerformanceInsightsResponse | null>(null)
@@ -84,6 +85,7 @@ export default function PerformanceDashboard() {
   // CSV Import Modal State
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
   const [csvText, setCsvText] = useState('')
+  const [isCsvTestData, setIsCsvTestData] = useState(false)
   const [isImportingCsv, setIsImportingCsv] = useState(false)
 
   // Manual Conversion Modal State
@@ -94,6 +96,7 @@ export default function PerformanceDashboard() {
   const [manualCampaignId, setManualCampaignId] = useState('')
   const [manualSubId, setManualSubId] = useState('')
   const [manualChannel, setManualChannel] = useState('Telegram')
+  const [manualIsTestData, setManualIsTestData] = useState(false)
 
   // Cost Modal State
   const [isCostModalOpen, setIsCostModalOpen] = useState(false)
@@ -212,7 +215,9 @@ export default function PerformanceDashboard() {
         rows.push(obj)
       }
 
-      const res = await publishingService.importConversionsCsv(rows)
+      const res = await publishingService.importConversionsCsv(
+        rows.map((r) => ({ ...r, is_test_data: isCsvTestData })),
+      )
 
       toast({
         title: '🎉 Conversões Importadas com Sucesso!',
@@ -250,6 +255,7 @@ export default function PerformanceDashboard() {
         campaign_id: manualCampaignId,
         sub_id: manualSubId,
         channel: manualChannel,
+        is_test_data: manualIsTestData,
       })
 
       toast({
@@ -346,7 +352,7 @@ export default function PerformanceDashboard() {
 
         {/* Legend + Actions */}
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Status Chips Legend */}
+          {/* Status Chips Legend & Test Data Filter */}
           <div className="flex items-center gap-2 bg-[#12141F] border border-[#23273A] px-3 py-1.5 rounded-xl text-[10px] font-mono">
             <span className="flex items-center gap-1 text-[#00E676]">
               <span className="w-2 h-2 rounded-full bg-[#00E676]" />
@@ -362,6 +368,25 @@ export default function PerformanceDashboard() {
               <span className="w-2 h-2 rounded-full bg-gray-500" />
               N/D
             </span>
+          </div>
+
+          <div className="flex items-center gap-2 bg-[#161928] border border-[#2A314D] px-3 py-1.5 rounded-xl">
+            <input
+              type="checkbox"
+              id="filter-test-data"
+              checked={showTestDataOnly}
+              onChange={(e) => setShowTestDataOnly(e.target.checked)}
+              className="rounded border-gray-600 text-amber-400 focus:ring-0 cursor-pointer"
+            />
+            <label
+              htmlFor="filter-test-data"
+              className="text-xs font-bold text-amber-300 flex items-center gap-1 cursor-pointer select-none"
+            >
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono px-1 py-0">
+                DADO DE TESTE
+              </Badge>
+              {showTestDataOnly ? 'Exibindo Apenas Testes' : 'Ver Apenas Testes'}
+            </label>
           </div>
 
           <Button
@@ -414,7 +439,7 @@ export default function PerformanceDashboard() {
         <div className="p-4 rounded-xl bg-[#11131C] border border-[#232738] relative overflow-hidden">
           <div className="flex items-center justify-between text-[10px] font-mono text-gray-400">
             <span>CONVERSÕES</span>
-            <span className="text-[#00E676] font-bold">🟢 REAL</span>
+            <span className="text-[#00E676] font-bold">🟢 REAL (SEM TESTE)</span>
           </div>
           <div className="text-2xl font-black font-mono text-[#00F2FF] mt-1">
             {kpis.conversions_count}
@@ -999,14 +1024,25 @@ export default function PerformanceDashboard() {
         {/* TAB 6: CONVERSIONS LIST */}
         <TabsContent value="conversions_list" className="space-y-4">
           <div className="p-5 rounded-2xl bg-[#11131C] border border-[#1E2232] space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-[#00E676]" />
-              Extrato Detalhado de Conversões
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-[#00E676]" />
+                  Extrato Detalhado de Conversões
+                </h3>
+                <p className="text-xs text-gray-400">
+                  {showTestDataOnly
+                    ? 'Exibindo SOMENTE conversões marcadas como dado de teste.'
+                    : 'Exibindo extrato de conversões com badge de dado de teste quando aplicável.'}
+                </p>
+              </div>
+            </div>
 
-            {conversions.length === 0 ? (
+            {conversions.filter((c) => (showTestDataOnly ? c.is_test_data : true)).length === 0 ? (
               <div className="py-12 text-center text-gray-500 text-xs">
-                Nenhuma conversão registrada ainda. Importe uma planilha CSV ou lance manualmente.
+                {showTestDataOnly
+                  ? 'Nenhum registro de teste encontrado.'
+                  : 'Nenhuma conversão registrada ainda. Importe uma planilha CSV ou lance manualmente.'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1016,6 +1052,7 @@ export default function PerformanceDashboard() {
                       <th className="py-3 px-4">Pedido / ID Externo</th>
                       <th className="py-3 px-3">Origem & Canal</th>
                       <th className="py-3 px-3">Atribuição</th>
+                      <th className="py-3 px-3 text-center">Tipo / Ambiente</th>
                       <th className="py-3 px-3 text-center">Status</th>
                       <th className="py-3 px-3 text-right">Valor Venda</th>
                       <th className="py-3 px-3 text-right">Comissão</th>
@@ -1023,60 +1060,79 @@ export default function PerformanceDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1D2132]">
-                    {conversions.map((c) => (
-                      <tr key={c.id} className="hover:bg-[#151824]/60">
-                        <td className="py-3 px-4 font-mono font-bold text-white">
-                          {c.external_order_id || c.id.slice(0, 10)}
-                        </td>
+                    {conversions
+                      .filter((c) => (showTestDataOnly ? c.is_test_data : true))
+                      .map((c) => (
+                        <tr
+                          key={c.id}
+                          className={`hover:bg-[#151824]/60 ${c.is_test_data ? 'bg-amber-950/10' : ''}`}
+                        >
+                          <td className="py-3 px-4 font-mono font-bold text-white">
+                            {c.external_order_id || c.id.slice(0, 10)}
+                          </td>
 
-                        <td className="py-3 px-3">
-                          <div className="text-white font-bold">{c.channel || 'Afiliados'}</div>
-                          <div className="text-[10px] text-gray-400 font-mono">{c.source_type}</div>
-                        </td>
+                          <td className="py-3 px-3">
+                            <div className="text-white font-bold">{c.channel || 'Afiliados'}</div>
+                            <div className="text-[10px] text-gray-400 font-mono">
+                              {c.source_type}
+                            </div>
+                          </td>
 
-                        <td className="py-3 px-3">
-                          <span
-                            className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                              c.attribution_confidence === 'confirmed'
-                                ? 'bg-[#00E676]/15 text-[#00E676] border-[#00E676]/30'
+                          <td className="py-3 px-3">
+                            <span
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                                c.attribution_confidence === 'confirmed'
+                                  ? 'bg-[#00E676]/15 text-[#00E676] border-[#00E676]/30'
+                                  : c.attribution_confidence === 'probable'
+                                    ? 'bg-yellow-400/15 text-yellow-400 border-yellow-400/30'
+                                    : 'bg-gray-700/30 text-gray-400 border-gray-600'
+                              }`}
+                            >
+                              {c.attribution_confidence === 'confirmed'
+                                ? '🟢 Confirmada'
                                 : c.attribution_confidence === 'probable'
-                                  ? 'bg-yellow-400/15 text-yellow-400 border-yellow-400/30'
-                                  : 'bg-gray-700/30 text-gray-400 border-gray-600'
-                            }`}
-                          >
-                            {c.attribution_confidence === 'confirmed'
-                              ? '🟢 Confirmada'
-                              : c.attribution_confidence === 'probable'
-                                ? '🟡 Provável'
-                                : '⚪ Não Atribuída'}
-                          </span>
-                        </td>
+                                  ? '🟡 Provável'
+                                  : '⚪ Não Atribuída'}
+                            </span>
+                          </td>
 
-                        <td className="py-3 px-3 text-center">
-                          <span
-                            className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                              c.status === 'confirmed'
-                                ? 'text-[#00E676] bg-[#00E676]/10'
-                                : 'text-gray-400 bg-gray-800'
-                            }`}
-                          >
-                            {c.status.toUpperCase()}
-                          </span>
-                        </td>
+                          <td className="py-3 px-3 text-center">
+                            {c.is_test_data ? (
+                              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono">
+                                DADO DE TESTE
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] font-mono">
+                                REAL
+                              </Badge>
+                            )}
+                          </td>
 
-                        <td className="py-3 px-3 text-right font-mono text-gray-300">
-                          R$ {c.sale_amount?.toFixed(2)}
-                        </td>
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                                c.status === 'confirmed'
+                                  ? 'text-[#00E676] bg-[#00E676]/10'
+                                  : 'text-gray-400 bg-gray-800'
+                              }`}
+                            >
+                              {c.status.toUpperCase()}
+                            </span>
+                          </td>
 
-                        <td className="py-3 px-3 text-right font-mono text-[#00E676] font-bold">
-                          +R$ {c.commission_amount?.toFixed(2)}
-                        </td>
+                          <td className="py-3 px-3 text-right font-mono text-gray-300">
+                            R$ {c.sale_amount?.toFixed(2)}
+                          </td>
 
-                        <td className="py-3 px-3 text-right font-mono text-gray-400">
-                          {c.conversion_date?.slice(0, 10) || '—'}
-                        </td>
-                      </tr>
-                    ))}
+                          <td className="py-3 px-3 text-right font-mono text-[#00E676] font-bold">
+                            +R$ {c.commission_amount?.toFixed(2)}
+                          </td>
+
+                          <td className="py-3 px-3 text-right font-mono text-gray-400">
+                            {c.conversion_date?.slice(0, 10) || '—'}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -1150,6 +1206,28 @@ export default function PerformanceDashboard() {
               rows={8}
               className="bg-[#0A0B10] border-[#242A3E] text-xs font-mono text-gray-200"
             />
+
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#141724] border border-[#23273B]">
+              <input
+                type="checkbox"
+                id="csv-is-test-data"
+                checked={isCsvTestData}
+                onChange={(e) => setIsCsvTestData(e.target.checked)}
+                className="rounded border-gray-600 text-amber-400 focus:ring-0 cursor-pointer"
+              />
+              <label
+                htmlFor="csv-is-test-data"
+                className="text-xs text-gray-300 cursor-pointer select-none flex items-center gap-2"
+              >
+                <span>Marcar estas conversões como</span>
+                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono">
+                  DADO DE TESTE
+                </Badge>
+                <span className="text-[10px] text-gray-400">
+                  (não afetará métricas financeiras reais)
+                </span>
+              </label>
+            </div>
           </div>
 
           <DialogFooter className="border-t border-[#1E2232] pt-4 flex items-center justify-between">
@@ -1237,6 +1315,25 @@ export default function PerformanceDashboard() {
                 placeholder="Telegram, Instagram, etc."
                 className="bg-[#141724] border-[#252A3F] text-xs"
               />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-[#1E2232]">
+              <input
+                type="checkbox"
+                id="manual-is-test-data"
+                checked={manualIsTestData}
+                onChange={(e) => setManualIsTestData(e.target.checked)}
+                className="rounded border-gray-600 text-amber-400 focus:ring-0 cursor-pointer"
+              />
+              <label
+                htmlFor="manual-is-test-data"
+                className="text-xs text-gray-300 cursor-pointer select-none flex items-center gap-2"
+              >
+                <span>Identificar como</span>
+                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] font-mono">
+                  DADO DE TESTE
+                </Badge>
+              </label>
             </div>
           </div>
 
