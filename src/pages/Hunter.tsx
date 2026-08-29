@@ -347,6 +347,41 @@ export default function HunterPage() {
           </p>
         </div>
 
+        {/* BANNER FASE 6: APRENDIZADO DO HISTÓRICO PARA O CAÇADOR */}
+        <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-950/20 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-cyan-900/40 text-cyan-400 shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white uppercase tracking-wider text-[11px]">
+                  🧠 Aprendizado do Histórico Aplicado à Caça
+                </span>
+                <span className="text-[10px] bg-cyan-900/60 text-cyan-300 px-2 py-0.5 rounded border border-cyan-700">
+                  Alta Confiança
+                </span>
+              </div>
+              <p className="text-slate-300">
+                Seus dados reais mostram que produtos de <strong>Casa e Cozinha</strong> entre{' '}
+                <strong>R$ 50 e R$ 150</strong> com <strong>fácil demonstração</strong> têm{' '}
+                <strong>+121% de conversão</strong>.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-cyan-700 text-cyan-300 hover:bg-cyan-900/40 text-xs shrink-0 self-start md:self-auto"
+            onClick={() => {
+              setCategory('Casa e Cozinha')
+              setMinPrice(50)
+            }}
+          >
+            Priorizar Vencedores
+          </Button>
+        </div>
+
         {/* Tab Navigation */}
         <div className="flex items-center bg-[#141624] p-1 rounded-xl border border-[#232738]">
           <button

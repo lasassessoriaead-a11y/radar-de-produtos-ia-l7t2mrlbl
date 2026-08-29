@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T16:57:21.937Z",
+  "generatedAt": "2026-08-29T17:13:23.068Z",
   "collections": [
     {
       "name": "users",
@@ -3010,6 +3010,425 @@
         "CREATE INDEX idx_audit_user ON audit_logs (user_id)",
         "CREATE INDEX idx_audit_entity ON audit_logs (entity_type, entity_id)",
         "CREATE INDEX idx_audit_created ON audit_logs (created DESC)"
+      ]
+    },
+    {
+      "name": "sales_insights",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "insight_key",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "category_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "what_works",
+            "what_fails",
+            "emerging_pattern",
+            "pattern_shift",
+            "recommended_test",
+            "insufficient_data",
+            "score_calibration"
+          ]
+        },
+        {
+          "name": "confidence_level",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["insufficient", "low", "moderate", "high"]
+        },
+        {
+          "name": "sample_summary",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_campaigns_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_clicks_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_conversions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_impressions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_metric_label",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "primary_metric_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "benchmark_comparison",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conclusion_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "recommendation_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "novo",
+            "revisado",
+            "aceito",
+            "descartado",
+            "em_teste",
+            "validado",
+            "refutado"
+          ]
+        },
+        {
+          "name": "evidence_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "target_module",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tested_hypothesis_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_sins_user ON sales_insights (user_id)",
+        "CREATE INDEX idx_sins_type ON sales_insights (category_type)",
+        "CREATE INDEX idx_sins_status ON sales_insights (status)",
+        "CREATE INDEX idx_sins_conf ON sales_insights (confidence_level)"
+      ]
+    },
+    {
+      "name": "learning_experiments",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "hypothesis_title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hypothesis_detail",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "version_a_baseline",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "version_b_challenger",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "primary_metric",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "secondary_metric",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rationale",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "potential_impact",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["baixo", "medio", "alto"]
+        },
+        {
+          "name": "confidence",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["baixa", "moderada", "alta"]
+        },
+        {
+          "name": "effort",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["baixo", "medio", "alto"]
+        },
+        {
+          "name": "priority_level",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["p1_urgente", "p2_alta", "p3_media", "p4_exploratoria"]
+        },
+        {
+          "name": "experiment_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["exploit", "explore"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["recomendado", "em_execucao", "concluido", "descartado"]
+        },
+        {
+          "name": "sample_current",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sample_needed",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "p_value_observed",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "stat_significance_reached",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "winner_version",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "outcome_notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_lexp_user ON learning_experiments (user_id)",
+        "CREATE INDEX idx_lexp_priority ON learning_experiments (priority_level)",
+        "CREATE INDEX idx_lexp_status ON learning_experiments (status)"
+      ]
+    },
+    {
+      "name": "score_calibrations",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "score_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "diagnosis",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "evidence_summary",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "proposed_weights",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "current_weights",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending_review", "approved_by_user", "rejected_by_user"]
+        },
+        {
+          "name": "user_decision_note",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "decided_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_scal_user ON score_calibrations (user_id)",
+        "CREATE INDEX idx_scal_status ON score_calibrations (status)"
       ]
     }
   ]

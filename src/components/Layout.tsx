@@ -130,6 +130,13 @@ export default function Layout() {
       badgeColor: 'bg-[#00E676]/20 text-[#00E676] border-[#00E676]/40',
     },
     {
+      to: '/inteligencia',
+      label: 'Inteligência de Vendas',
+      icon: Sparkles,
+      badge: 'FASE 6',
+      badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40',
+    },
+    {
       to: '/analista',
       label: 'Analista IA',
       icon: Bot,
