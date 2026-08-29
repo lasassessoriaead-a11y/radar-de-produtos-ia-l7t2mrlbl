@@ -147,6 +147,64 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Telegram Channel Official Bot Configuration (Fase 5) */}
+      <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#212538]">
+          <div className="flex items-center gap-2.5">
+            <Radio className="w-5 h-5 text-[#00F2FF]" />
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                Conexão do Canal Oficial (Telegram Bot API)
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00F2FF]/20 text-[#00F2FF] border border-[#00F2FF]/40">
+                  FASE 5 ATIVA
+                </span>
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Configure a chave de integração com a API oficial do Telegram para publicação direta
+                e automática.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-2">
+            <h4 className="font-bold text-white flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-[#00E676]" />
+              Instruções de Configuração Segura:
+            </h4>
+            <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[11px] leading-relaxed">
+              <li>
+                Abra o Telegram e inicie uma conversa com o <code>@BotFather</code>.
+              </li>
+              <li>
+                Envie <code>/newbot</code> e siga as instruções para obter seu{' '}
+                <strong>Bot Token</strong>.
+              </li>
+              <li>
+                Adicione o bot como <strong>Administrador</strong> no seu Canal ou Grupo do
+                Telegram.
+              </li>
+              <li>
+                Configure o Token e Chat ID diretamente no modal de <strong>Publicação</strong> ou
+                na Central.
+              </li>
+            </ol>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-2">
+            <h4 className="font-bold text-white flex items-center gap-1.5">
+              <Shield className="w-4 h-4 text-[#00F2FF]" />
+              Proteção e Criptografia do Token:
+            </h4>
+            <p className="text-[11px] text-gray-300 leading-relaxed">
+              O token nunca é exposto em texto plano na interface do usuário. No backend, ele é
+              criptografado com padrão AES e armazenado de forma segura nas tabelas do Skip Cloud.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Mercado Livre API Token Configuration */}
       <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#212538]">

@@ -113,8 +113,21 @@ export default function Layout() {
       to: '/estudio',
       label: 'Estúdio Criativo',
       icon: Sparkles,
-      badge: 'FASE 4',
+      badge: null,
+    },
+    {
+      to: '/publicacao',
+      label: 'Central de Publicação',
+      icon: Zap,
+      badge: 'FASE 5',
       badgeColor: 'bg-[#00F2FF]/20 text-[#00F2FF] border-[#00F2FF]/40',
+    },
+    {
+      to: '/performance',
+      label: 'Performance & ROI',
+      icon: TrendingUp,
+      badge: 'DADOS',
+      badgeColor: 'bg-[#00E676]/20 text-[#00E676] border-[#00E676]/40',
     },
     {
       to: '/analista',

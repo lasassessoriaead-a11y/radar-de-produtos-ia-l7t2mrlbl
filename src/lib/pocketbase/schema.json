@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T16:31:24.194Z",
+  "generatedAt": "2026-08-29T16:57:21.937Z",
   "collections": [
     {
       "name": "users",
@@ -2004,6 +2004,1012 @@
         "CREATE INDEX idx_asset_user ON creative_assets (user_id)",
         "CREATE INDEX idx_asset_camp ON creative_assets (campaign_id)",
         "CREATE INDEX idx_asset_type ON creative_assets (asset_type)"
+      ]
+    },
+    {
+      "name": "channel_connections",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "channel_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "telegram",
+            "instagram",
+            "tiktok",
+            "youtube",
+            "facebook",
+            "pinterest",
+            "whatsapp"
+          ]
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_connected",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "credentials_masked",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "credentials_encrypted",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "settings",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_tested_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_conn_user_channel ON channel_connections (user_id, channel_type)"
+      ]
+    },
+    {
+      "name": "publications",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "campaigns"
+        },
+        {
+          "name": "variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "discovered_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "channel_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "telegram",
+            "instagram",
+            "tiktok",
+            "youtube",
+            "facebook",
+            "pinterest",
+            "whatsapp",
+            "other"
+          ]
+        },
+        {
+          "name": "publication_mode",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["telegram_bot", "manual_tracked"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "draft",
+            "ready_to_publish",
+            "scheduled",
+            "publishing",
+            "published",
+            "paused",
+            "failed",
+            "archived"
+          ]
+        },
+        {
+          "name": "published_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "scheduled_for",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_post_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_message_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "copy_used",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cta_used",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_image_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tracking_link_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tracking_slug",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tracking_full_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "destination_url",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "checklist_snapshot",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "price_at_publish",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "impressions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "views_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "raw_clicks_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valid_clicks_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_total",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "costs_total",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "error_log",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_pub_camp ON publications (campaign_id)",
+        "CREATE INDEX idx_pub_status ON publications (status)",
+        "CREATE INDEX idx_pub_user_created ON publications (user_id, created DESC)"
+      ]
+    },
+    {
+      "name": "tracking_links",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "publication_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sub_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "destination_url",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "utm_source",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_medium",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_campaign",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "utm_term",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "raw_clicks_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valid_clicks_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversions_count",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "commission_earned",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "last_click_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_track_slug ON tracking_links (slug)",
+        "CREATE INDEX idx_track_camp ON tracking_links (campaign_id)",
+        "CREATE INDEX idx_track_subid ON tracking_links (sub_id)"
+      ]
+    },
+    {
+      "name": "click_events",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tracking_link_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "publication_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sub_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_valid",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "invalid_reason",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "referrer_host",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user_agent_short",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "device_type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["mobile", "desktop", "tablet", "bot", "unknown"]
+        },
+        {
+          "name": "client_dedup_hash",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ip_masked",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "country_code",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "has_converted",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversion_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadata",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_click_track ON click_events (tracking_link_id)",
+        "CREATE INDEX idx_click_camp ON click_events (campaign_id)",
+        "CREATE INDEX idx_click_created ON click_events (created DESC)",
+        "CREATE INDEX idx_click_valid ON click_events (is_valid)"
+      ]
+    },
+    {
+      "name": "conversions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "creative_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "publication_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tracking_link_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sub_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "external_order_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sale_amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "commission_amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "currency",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "confirmed", "canceled", "refunded"]
+        },
+        {
+          "name": "source_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["csv_import", "manual_entry", "webhook", "api_postback"]
+        },
+        {
+          "name": "attribution_confidence",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["confirmed", "probable", "unattributed"]
+        },
+        {
+          "name": "attribution_method",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "conversion_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "raw_payload",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_conv_user ON conversions (user_id)",
+        "CREATE INDEX idx_conv_camp ON conversions (campaign_id)",
+        "CREATE INDEX idx_conv_status ON conversions (status)",
+        "CREATE INDEX idx_conv_date ON conversions (conversion_date DESC)",
+        "CREATE INDEX idx_conv_subid ON conversions (sub_id)"
+      ]
+    },
+    {
+      "name": "campaign_costs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "campaign_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "variation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "publication_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cost_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "paid_traffic",
+            "ai_generation",
+            "tools_subscription",
+            "creative_outsourcing",
+            "other"
+          ]
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cost_user ON campaign_costs (user_id)",
+        "CREATE INDEX idx_cost_camp ON campaign_costs (campaign_id)"
+      ]
+    },
+    {
+      "name": "audit_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && user_id = @request.auth.id",
+        "view": "@request.auth.id != '' && user_id = @request.auth.id",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user_id = @request.auth.id",
+        "delete": "@request.auth.id != '' && user_id = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "entity_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "campaign",
+            "creative",
+            "publication",
+            "tracking_link",
+            "conversion",
+            "channel",
+            "cost"
+          ]
+        },
+        {
+          "name": "entity_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "details",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_audit_user ON audit_logs (user_id)",
+        "CREATE INDEX idx_audit_entity ON audit_logs (entity_type, entity_id)",
+        "CREATE INDEX idx_audit_created ON audit_logs (created DESC)"
       ]
     }
   ]
