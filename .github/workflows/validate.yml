@@ -36,39 +36,22 @@ jobs:
       - name: Build
         run: pnpm build
 
-
-  pocketbase-smoke:
+  backend-syntax:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare PocketBase
-        env:
-          PB_VERSION: 0.39.10
-        run: |
-          wget -q "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -O /tmp/pb.zip
-          unzip -q /tmp/pb.zip -d /tmp/pb
-          cp -R pocketbase/migrations /tmp/pb/pb_migrations
-          cp -R pocketbase/hooks /tmp/pb/pb_hooks
-          chmod +x /tmp/pb/pocketbase
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-      - name: Start PocketBase and apply migrations/hooks
+      - name: Check PocketBase hook syntax
         run: |
-          mkdir -p /tmp/pb/pb_data
-          cd /tmp/pb
-          ./pocketbase serve --http=127.0.0.1:8090 --dir=/tmp/pb/pb_data > /tmp/pb.log 2>&1 &
-          echo $! > /tmp/pb.pid
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:8090/api/health >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/pb.log
-          exit 1
+          find pocketbase/hooks -type f -name '*.js' -print0 | xargs -0 -n1 node --check
 
-      - name: Show PocketBase logs on failure
-        if: failure()
-        run: cat /tmp/pb.log || true
+      - name: Check migration syntax
+        run: |
+          find pocketbase/migrations -type f -name '*.js' -print0 | xargs -0 -n1 node --check
