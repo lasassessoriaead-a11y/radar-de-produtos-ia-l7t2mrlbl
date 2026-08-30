@@ -164,9 +164,14 @@ routerAdd('GET', '/t/{slug}', (e) => {
       console.log('Error updating link counters:', linkUpdateErr)
     }
 
-    // Update publications counters if linked
+    // Test links must never contaminate aggregate production counters.
+    // The click_event and tracking_link counters still record the test flow itself,
+    // but publication/variation/creative KPIs remain production-only.
+    const isTestData = linkRecord.getBool('is_test_data')
+
+    // Update publications counters if linked and this is real traffic
     const pubId = linkRecord.getString('publication_id')
-    if (pubId) {
+    if (pubId && !isTestData) {
       try {
         const pubRec = $app.findRecordById('publications', pubId)
         const pRaw = pubRec.getInt('raw_clicks_count') || 0
@@ -179,9 +184,9 @@ routerAdd('GET', '/t/{slug}', (e) => {
       } catch (_) {}
     }
 
-    // Update campaign_variations counters if linked
+    // Update campaign_variations counters only for real traffic
     const varId = linkRecord.getString('variation_id')
-    if (varId) {
+    if (varId && !isTestData) {
       try {
         const varRec = $app.findRecordById('campaign_variations', varId)
         const vClicks = varRec.getInt('clicks') || 0
@@ -195,9 +200,9 @@ routerAdd('GET', '/t/{slug}', (e) => {
       } catch (_) {}
     }
 
-    // Update creatives counters if linked
+    // Update creatives counters only for real traffic
     const creativeId = linkRecord.getString('creative_id')
-    if (creativeId) {
+    if (creativeId && !isTestData) {
       try {
         const crRec = $app.findRecordById('creatives', creativeId)
         const cClicks = crRec.getInt('clicks') || 0
