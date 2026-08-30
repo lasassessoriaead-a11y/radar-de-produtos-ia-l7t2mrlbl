@@ -45,7 +45,12 @@ export const audienceService = {
               'Relevance Score Engine',
               'Match Engine Produto × Dor',
             ],
-            required_credentials: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 'REDDIT_USER_AGENT'],
+            required_credentials: [
+              'REDDIT_CLIENT_ID',
+              'REDDIT_CLIENT_SECRET',
+              'REDDIT_USER_AGENT',
+              'REDDIT_COMMERCIAL_APPROVED',
+            ],
             is_configured: false,
           },
           {
