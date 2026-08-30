@@ -20,6 +20,7 @@ import AudienceRadarPage from './pages/AudienceRadar'
 import CRMPage from './pages/CRM'
 import OrchestratorPage from './pages/Orchestrator'
 import NotFound from './pages/NotFound'
+import LeadCapturePage from './pages/LeadCapture'
 import Layout from './components/Layout'
 
 const App = () => (
@@ -29,6 +30,7 @@ const App = () => (
         <Toaster />
         <Sonner position="top-right" richColors theme="dark" />
         <Routes>
+          <Route path="/ofertas" element={<LeadCapturePage />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/orquestrador" element={<OrchestratorPage />} />
