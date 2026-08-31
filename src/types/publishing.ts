@@ -104,6 +104,12 @@ export interface TrackingLinkRecord {
   publication_id?: string
   channel?: string
   sub_id?: string
+  marketplace?: string
+  sub_id_1?: string
+  sub_id_2?: string
+  sub_id_3?: string
+  sub_id_4?: string
+  sub_id_5?: string
   destination_url: string
   utm_source?: string
   utm_medium?: string
@@ -158,6 +164,13 @@ export interface ConversionRecord {
   publication_id?: string
   tracking_link_id?: string
   sub_id?: string
+  marketplace?: string
+  sub_id_1?: string
+  sub_id_2?: string
+  sub_id_3?: string
+  sub_id_4?: string
+  sub_id_5?: string
+  dedupe_key?: string
   external_order_id?: string
   channel?: string
   sale_amount: number

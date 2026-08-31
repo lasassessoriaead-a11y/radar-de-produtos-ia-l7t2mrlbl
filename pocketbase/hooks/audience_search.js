@@ -6,18 +6,104 @@
 // 3. Status 'pending_integration' (Integração pendente) enquanto não houver conexão externa real
 // 4. Sem dados fictícios simulando conexão real. Suporte explícito a dados legítimos de teste identificados com 'is_test_data = true'.
 
+
+// Reddit provider helpers.
+// Commercial/monetized use stays disabled unless the operator explicitly confirms
+// that Reddit approved the intended commercial Data API use.
+function redditUtf8Base64(input) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  const bytes = []
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i)
+    if (code < 0x80) bytes.push(code)
+    else if (code < 0x800) {
+      bytes.push(0xc0 | (code >> 6))
+      bytes.push(0x80 | (code & 0x3f))
+    } else {
+      bytes.push(0xe0 | (code >> 12))
+      bytes.push(0x80 | ((code >> 6) & 0x3f))
+      bytes.push(0x80 | (code & 0x3f))
+    }
+  }
+
+  let out = ''
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i]
+    const b = i + 1 < bytes.length ? bytes[i + 1] : 0
+    const d = i + 2 < bytes.length ? bytes[i + 2] : 0
+    const triple = (a << 16) | (b << 8) | d
+    out += chars[(triple >> 18) & 63]
+    out += chars[(triple >> 12) & 63]
+    out += i + 1 < bytes.length ? chars[(triple >> 6) & 63] : '='
+    out += i + 2 < bytes.length ? chars[triple & 63] : '='
+  }
+  return out
+}
+
+function getRedditProviderConfig() {
+  const clientId = ($os.getenv('REDDIT_CLIENT_ID') || '').trim()
+  const clientSecret = ($os.getenv('REDDIT_CLIENT_SECRET') || '').trim()
+  const userAgent = ($os.getenv('REDDIT_USER_AGENT') || '').trim()
+  const commercialApproved =
+    (($os.getenv('REDDIT_COMMERCIAL_APPROVED') || '').trim().toLowerCase() === 'true')
+
+  return {
+    clientId,
+    clientSecret,
+    userAgent,
+    credentialsConfigured: Boolean(clientId && clientSecret && userAgent),
+    commercialApproved,
+  }
+}
+
+function fetchRedditAccessToken(config) {
+  const basic = redditUtf8Base64(config.clientId + ':' + config.clientSecret)
+  const tokenRes = $http.send({
+    url: 'https://www.reddit.com/api/v1/access_token',
+    method: 'POST',
+    headers: {
+      Authorization: 'Basic ' + basic,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': config.userAgent,
+      Accept: 'application/json',
+    },
+    body: 'grant_type=client_credentials',
+    timeout: 15,
+  })
+
+  if (tokenRes.statusCode !== 200 || !tokenRes.json?.access_token) {
+    throw new Error(
+      'Falha no OAuth do Reddit (HTTP ' +
+        tokenRes.statusCode +
+        '). Verifique credenciais e aprovação do aplicativo.',
+    )
+  }
+  return tokenRes.json.access_token
+}
+
 // Endpoint 1: Obter Status e Metadados dos Provedores de Audiência
 routerAdd(
   'GET',
   '/backend/v1/audience/providers',
   (e) => {
+    const redditConfig = getRedditProviderConfig()
+    const redditActive = redditConfig.credentialsConfigured && redditConfig.commercialApproved
+
     const providers = [
       {
         id: 'reddit',
         name: 'Reddit',
         category: 'social_discussion',
-        status: 'pending_integration',
-        status_label: 'Integração pendente',
+        status: redditActive
+          ? 'active'
+          : redditConfig.credentialsConfigured && !redditConfig.commercialApproved
+            ? 'approval_required'
+            : 'pending_integration',
+        status_label: redditActive
+          ? 'Conectado — API oficial'
+          : redditConfig.credentialsConfigured && !redditConfig.commercialApproved
+            ? 'Aguardando aprovação comercial do Reddit'
+            : 'Integração pendente',
         is_primary: true,
         order: 1,
         description:
@@ -29,8 +115,15 @@ routerAdd(
           'Relevance Score Engine',
           'Match Engine Produto × Dor',
         ],
-        required_credentials: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET', 'REDDIT_USER_AGENT'],
-        is_configured: false,
+        required_credentials: [
+          'REDDIT_CLIENT_ID',
+          'REDDIT_CLIENT_SECRET',
+          'REDDIT_USER_AGENT',
+          'REDDIT_COMMERCIAL_APPROVED',
+        ],
+        is_configured: redditConfig.credentialsConfigured,
+        commercial_approved: redditConfig.commercialApproved,
+        is_connected: redditActive,
       },
       {
         id: 'youtube',
@@ -115,21 +208,143 @@ routerAdd(
     // Enquanto a conexão externa ao Reddit oficial não estiver configurada com credenciais no ambiente,
     // o status é "Integração pendente". NÃO inventamos dados fictícios nem posts simulados como se fossem reais.
     if (provider === 'reddit') {
-      return e.json(200, {
-        success: true,
-        provider: 'reddit',
-        provider_name: 'Reddit',
-        status: 'pending_integration',
-        status_label: 'Integração pendente',
-        is_connected: false,
-        message:
-          'O provider Reddit está com status "Integração pendente". Toda a arquitetura analítica (Intent Score, Relevance Score, Match Engine e Oportunidades) está pronta para processar dados reais assim que a conexão de integração for estabelecida neste ambiente. Para validar a interface e os módulos, utilize a importação de dados de teste claramente sinalizados.',
-        signals: [],
-        total_found: 0,
-        architecture_ready: true,
-        query: searchTerm,
-        subreddit: subreddit || 'all',
-      })
+      const config = getRedditProviderConfig()
+      const limit = Math.min(25, Math.max(1, parseInt(body.limit, 10) || 15))
+
+      if (!config.credentialsConfigured) {
+        return e.json(200, {
+          success: true,
+          provider: 'reddit',
+          provider_name: 'Reddit',
+          status: 'pending_integration',
+          status_label: 'Integração pendente',
+          is_connected: false,
+          message:
+            'Configure REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET e REDDIT_USER_AGENT no ambiente do Skip. Nenhum dado do Reddit será coletado até a configuração real.',
+          signals: [],
+          total_found: 0,
+          architecture_ready: true,
+          query: searchTerm,
+          subreddit: subreddit || 'all',
+        })
+      }
+
+      if (!config.commercialApproved) {
+        return e.json(200, {
+          success: true,
+          provider: 'reddit',
+          provider_name: 'Reddit',
+          status: 'approval_required',
+          status_label: 'Aguardando aprovação comercial do Reddit',
+          is_connected: false,
+          message:
+            'As credenciais existem, mas a coleta está bloqueada porque este projeto é monetizado. Ative REDDIT_COMMERCIAL_APPROVED=true somente após obter autorização aplicável do Reddit para o uso comercial pretendido.',
+          signals: [],
+          total_found: 0,
+          architecture_ready: true,
+          query: searchTerm,
+          subreddit: subreddit || 'all',
+        })
+      }
+
+      try {
+        const accessToken = fetchRedditAccessToken(config)
+        const safeSubreddit = subreddit.replace(/^r\//i, '').replace(/[^A-Za-z0-9_]/g, '')
+        const baseUrl = safeSubreddit
+          ? 'https://oauth.reddit.com/r/' + safeSubreddit + '/search'
+          : 'https://oauth.reddit.com/search'
+        const params = [
+          'q=' + encodeURIComponent(searchTerm),
+          'sort=relevance',
+          't=month',
+          'limit=' + limit,
+          'type=link',
+          'raw_json=1',
+        ]
+        if (safeSubreddit) params.push('restrict_sr=1')
+
+        const redditRes = $http.send({
+          url: baseUrl + '?' + params.join('&'),
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer ' + accessToken,
+            'User-Agent': config.userAgent,
+            Accept: 'application/json',
+          },
+          timeout: 15,
+        })
+
+        if (redditRes.statusCode !== 200) {
+          return e.json(200, {
+            success: false,
+            provider: 'reddit',
+            provider_name: 'Reddit',
+            status: 'api_error',
+            status_label: 'Erro na API oficial',
+            is_connected: true,
+            message: 'Reddit retornou HTTP ' + redditRes.statusCode + '.',
+            signals: [],
+            total_found: 0,
+            query: searchTerm,
+          })
+        }
+
+        const children = redditRes.json?.data?.children || []
+        const signals = []
+
+        for (let i = 0; i < children.length; i++) {
+          const item = children[i]?.data || {}
+          if (!item.id || !item.title) continue
+
+          signals.push({
+            external_id: item.name || item.id,
+            title: item.title || '',
+            snippet: (item.selftext || '').slice(0, 2000),
+            community: item.subreddit ? 'r/' + item.subreddit : '',
+            author_display: item.author ? 'u/' + item.author : '',
+            source_url: item.permalink ? 'https://www.reddit.com' + item.permalink : '',
+            published_at: item.created_utc
+              ? new Date(Number(item.created_utc) * 1000).toISOString()
+              : '',
+            upvotes: Number(item.score || 0),
+            comments_count: Number(item.num_comments || 0),
+          })
+        }
+
+        return e.json(200, {
+          success: true,
+          provider: 'reddit',
+          provider_name: 'Reddit',
+          status: 'ok',
+          status_label: 'Conectado — API oficial',
+          is_connected: true,
+          message:
+            signals.length > 0
+              ? signals.length + ' sinais públicos encontrados na API oficial do Reddit.'
+              : 'Nenhum sinal encontrado para os filtros informados.',
+          signals,
+          total_found: signals.length,
+          architecture_ready: true,
+          query: searchTerm,
+          subreddit: safeSubreddit ? 'r/' + safeSubreddit : 'all',
+          data_usage: 'market_intent_analysis_only',
+          outreach_allowed: false,
+        })
+      } catch (err) {
+        console.log('Reddit provider error: ' + err)
+        return e.json(200, {
+          success: false,
+          provider: 'reddit',
+          provider_name: 'Reddit',
+          status: 'api_error',
+          status_label: 'Erro na integração',
+          is_connected: false,
+          message: 'Falha ao consultar a API oficial do Reddit: ' + (err.message || 'erro de rede'),
+          signals: [],
+          total_found: 0,
+          query: searchTerm,
+        })
+      }
     }
 
     // Providers futuros (YouTube, Google Search, Fóruns)

@@ -72,23 +72,34 @@ Retorne um JSON exatamente no seguinte formato:
         const match = raw.match(/\{[\s\S]*\}/)
         parsed = match ? JSON.parse(match[0]) : JSON.parse(raw)
       } catch (parseErr) {
+        // Never fabricate performance findings when the AI response cannot be parsed.
+        // Return a transparent, non-assertive fallback based only on the supplied KPIs.
+        const validClicks = Number(statsData.valid_clicks || 0)
+        const conversions = Number(statsData.conversions_count || 0)
+        const rawClicks = Number(statsData.raw_clicks || 0)
+        const filtered = Number(statsData.bot_clicks_filtered || 0)
+        const hasEnoughData = validClicks >= 100 && conversions >= 3
+
         parsed = {
           diagnostic_summary:
-            'A operação apresenta dados em fase inicial de tração com funil de cliques ativo.',
-          data_reliability_level: 'preliminar',
+            'Não foi possível interpretar a resposta analítica da IA com segurança. Os KPIs recebidos continuam disponíveis, mas nenhuma conclusão específica foi inferida.',
+          data_reliability_level: hasEnoughData ? 'medio' : 'preliminar',
           winner_variation_insight:
-            'Variação B (Demonstração Prática) demonstra maior taxa de retenção e cliques válidos.',
+            'Indisponível nesta execução: não há análise validada suficiente para declarar uma variação vencedora.',
           prediction_vs_reality_insight:
-            'Produtos com score acima de 85 mantêm correlação positiva com interesse de cliques.',
+            'Indisponível nesta execução: nenhuma relação entre scores previstos e resultados reais foi validada.',
           channel_efficiency_insight:
-            'Telegram entrega o menor custo por clique e maior velocidade de entrega direta.',
+            'Indisponível nesta execução: nenhuma superioridade entre canais foi validada.',
           recommended_actions: [
-            'Manter consistência de publicações diárias no canal do Telegram',
-            'Testar novos ganchos com foco no problema antes de aumentar escala',
-            'Importar relatórios semanais das plataformas para recalcular ROI determinístico',
+            'Reexecutar a análise de performance.',
+            'Revisar os KPIs consolidados antes de tomar decisão operacional.',
+            'Evitar declarar vencedor ou padrão até haver evidência validada.',
           ],
           bot_traffic_warning:
-            'O filtro anti-bot está descartando crawlers de pré-visualização garantindo integridade dos dados.',
+            rawClicks > 0
+              ? `Foram informados ${filtered} cliques filtrados entre ${rawClicks} cliques brutos; isso é um dado técnico, não uma conclusão sobre qualidade de tráfego.`
+              : 'Sem volume de cliques suficiente para avaliar tráfego filtrado.',
+          analysis_status: 'parse_failed_no_fabrication',
         }
       }
 

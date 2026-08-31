@@ -102,6 +102,14 @@ export default function PublishingHub() {
   const [generatedTrackingUrl, setGeneratedTrackingUrl] = useState<string>('')
   const [generatedTrackingId, setGeneratedTrackingId] = useState<string>('')
   const [generatedSubId, setGeneratedSubId] = useState<string>('')
+  const [shopeeSubIds, setShopeeSubIds] = useState<{
+    sub_id_1: string
+    sub_id_2: string
+    sub_id_3: string
+    sub_id_4: string
+    sub_id_5: string
+  } | null>(null)
+  const [isGeneratingShopeeSubIds, setIsGeneratingShopeeSubIds] = useState(false)
   const [isPublishing, setIsPublishing] = useState<boolean>(false)
 
   // Telegram Quick Setup in Modal if disconnected
@@ -184,6 +192,42 @@ export default function PublishingHub() {
     }
   }, [selectedVariationId, currentCampaign])
 
+  const handlePrepareShopeeSubIds = async () => {
+    if (!currentCampaign) {
+      toast({
+        title: 'Selecione uma campanha',
+        description: 'Escolha a campanha antes de gerar os Sub_ids da Shopee.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsGeneratingShopeeSubIds(true)
+    try {
+      const res = await publishingService.prepareShopeeSubIds({
+        campaign_id: currentCampaign.id,
+        creative_id: selectedCreativeId,
+        product_id: currentCampaign.product_id,
+        product_title: currentCampaign.product_title,
+        channel: selectedChannel,
+        version_letter: currentVariation?.version_letter || 'A',
+      })
+      setShopeeSubIds(res.sub_ids)
+      toast({
+        title: 'Shopee Sub_id 1–5 preparados',
+        description: 'Copie os cinco valores para o modo Avançado da Shopee antes de gerar o link.',
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao gerar Sub_ids da Shopee',
+        description: err.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGeneratingShopeeSubIds(false)
+    }
+  }
+
   // Run Pre-Publish Checklist
   const handleRunChecklist = async () => {
     if (!currentCampaign) return
@@ -209,6 +253,11 @@ export default function PublishingHub() {
 
     // Auto generate or retrieve tracking link
     try {
+      const isShopeeCampaign =
+        /shopee/i.test(currentCampaign.platform || '') ||
+        /shopee/i.test(currentCampaign.affiliate_url || '') ||
+        /shopee/i.test(currentCampaign.product_url || '')
+
       const trackRes = await publishingService.createOrGetTrackingLink({
         campaign_id: currentCampaign.id,
         variation_id: selectedVariationId,
@@ -219,6 +268,8 @@ export default function PublishingHub() {
           currentCampaign.affiliate_url || currentCampaign.product_url || 'https://shopee.com.br',
         version_letter: currentVariation?.version_letter || 'A',
         title: `Publicação ${selectedChannel} - ${currentCampaign.product_title.slice(0, 25)}`,
+        marketplace: isShopeeCampaign ? 'Shopee' : undefined,
+        shopee_sub_ids: isShopeeCampaign && shopeeSubIds ? shopeeSubIds : undefined,
       })
 
       setGeneratedTrackingUrl(trackRes.short_url)
@@ -985,6 +1036,70 @@ export default function PublishingHub() {
                   })}
                 </div>
               </div>
+
+              {currentCampaign && (
+                <div className="p-4 rounded-xl bg-[#1A1208] border border-[#EE4D2D]/40 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-[#FF765B] flex items-center gap-2">
+                        <Hash className="w-4 h-4" />
+                        Shopee — Sub_id Avançado 1–5
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Gere estes códigos antes de clicar em “Adicionar ao Link” na Shopee. O Sub_id
+                        5 é a chave principal de atribuição da venda no Radar.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handlePrepareShopeeSubIds}
+                      disabled={isGeneratingShopeeSubIds}
+                      size="sm"
+                      className="h-8 bg-[#EE4D2D] hover:bg-[#D93F24] text-white text-xs font-bold"
+                    >
+                      {isGeneratingShopeeSubIds ? 'Gerando...' : 'Gerar Sub_ids'}
+                    </Button>
+                  </div>
+
+                  {shopeeSubIds && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        ['Sub_id 1 · Produto', shopeeSubIds.sub_id_1],
+                        ['Sub_id 2 · Canal', shopeeSubIds.sub_id_2],
+                        ['Sub_id 3 · Campanha', shopeeSubIds.sub_id_3],
+                        ['Sub_id 4 · Variação/Criativo', shopeeSubIds.sub_id_4],
+                        ['Sub_id 5 · Tracking único', shopeeSubIds.sub_id_5],
+                      ].map(([label, value]) => (
+                        <div
+                          key={label}
+                          className="rounded-lg border border-[#3A2A22] bg-[#0E1017] p-2"
+                        >
+                          <div className="text-[9px] uppercase font-mono text-gray-500">{label}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <code className="text-[11px] text-white flex-1 truncate">{value}</code>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(value)
+                                toast({ title: `${label} copiado` })
+                              }}
+                              className="text-[#FF765B] hover:text-white"
+                              aria-label={`Copiar ${label}`}
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="text-[10px] text-amber-200/80">
+                    Use apenas letras e números. Depois gere o link afiliado na Shopee e salve esse
+                    link na campanha; o Radar não altera o link Shopee ao redirecionar.
+                  </div>
+                </div>
+              )}
 
               {/* Quick Telegram Bot Connector if not connected and selected */}
               {selectedChannel === 'Telegram' && !telegramConnection && (

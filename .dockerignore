@@ -1,0 +1,10 @@
+node_modules
+dist
+dev-dist
+.git
+.github
+pb_data
+pocketbase/pb_data
+.env.local
+.env.production
+*.log

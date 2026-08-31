@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Settings,
   Shield,
@@ -12,16 +12,23 @@ import {
   Globe,
   Radio,
   User,
+  ShoppingBag,
+  Link2,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
+import { shopeeService, type ShopeeConnectionStatus } from '@/services/shopee'
 
 export default function SettingsPage() {
   const { user, login } = useAuth()
   const [email, setEmail] = useState(user?.email || 'luka2510@hotmail.com')
   const [password, setPassword] = useState('Skip@Pass')
   const [saving, setSaving] = useState(false)
+  const [shopeeStatus, setShopeeStatus] = useState<ShopeeConnectionStatus | null>(null)
+  const [loadingShopee, setLoadingShopee] = useState(false)
+  const [changingShopeeMode, setChangingShopeeMode] = useState(false)
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +43,39 @@ export default function SettingsPage() {
       setSaving(false)
     }
   }
+
+  const loadShopeeStatus = async () => {
+    setLoadingShopee(true)
+    try {
+      const status = await shopeeService.getStatus()
+      setShopeeStatus(status)
+    } catch (err: any) {
+      toast.error(err.message || 'Não foi possível carregar o status da Shopee.')
+    } finally {
+      setLoadingShopee(false)
+    }
+  }
+
+  const changeShopeeMode = async (mode: 'manual' | 'open_api') => {
+    setChangingShopeeMode(true)
+    try {
+      await shopeeService.setMode(mode)
+      await loadShopeeStatus()
+      toast.success(
+        mode === 'manual'
+          ? 'Shopee Manual ativada.'
+          : 'Open API selecionada. Aguardando credenciais/liberação da Shopee.',
+      )
+    } catch (err: any) {
+      toast.error(err.message || 'Não foi possível alterar o modo da Shopee.')
+    } finally {
+      setChangingShopeeMode(false)
+    }
+  }
+
+  useEffect(() => {
+    if (user?.id) loadShopeeStatus()
+  }, [user?.id])
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
@@ -143,6 +183,124 @@ export default function SettingsPage() {
                 Operacional
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Shopee Affiliate Connection */}
+      <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[#212538]">
+          <div className="flex items-center gap-2.5">
+            <ShoppingBag className="w-5 h-5 text-[#EE4D2D]" />
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                Shopee Afiliados
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#EE4D2D]/15 text-[#FF765B] border border-[#EE4D2D]/30">
+                  INTEGRAÇÃO HÍBRIDA
+                </span>
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Use o modo Manual agora e migre para Open API quando a Shopee liberar AppId/Secret.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={loadShopeeStatus}
+            disabled={loadingShopee}
+            variant="outline"
+            size="sm"
+            className="h-8 border-[#2A3047] bg-[#0D0F18] text-gray-300 text-xs gap-1.5"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loadingShopee ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => changeShopeeMode('manual')}
+            disabled={changingShopeeMode}
+            className={`text-left p-5 rounded-2xl border transition-all ${
+              shopeeStatus?.mode === 'manual' || !shopeeStatus
+                ? 'bg-[#EE4D2D]/10 border-[#EE4D2D]/60 shadow-[0_0_18px_rgba(238,77,45,0.08)]'
+                : 'bg-[#0D0F18] border-[#232738] hover:border-[#3A4058]'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-[#FF765B]" />
+                <span className="text-sm font-bold text-white">Modo Manual</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#00E676]/15 text-[#00E676] border border-[#00E676]/30">
+                DISPONÍVEL AGORA
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+              O Radar gera Sub_id 1–5, você gera o link afiliado dentro da Shopee, cola o link na
+              campanha e depois importa o relatório de vendas/comissões.
+            </p>
+            <ul className="mt-3 space-y-1 text-[10px] text-gray-300">
+              <li>✓ Sub_id 1–5 avançado</li>
+              <li>✓ Link /t/ rastreável sem alterar o link Shopee</li>
+              <li>✓ Atribuição pelo Sub_id 5</li>
+              <li>✓ Importação de CSV e comissão real</li>
+            </ul>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeShopeeMode('open_api')}
+            disabled={changingShopeeMode}
+            className={`text-left p-5 rounded-2xl border transition-all ${
+              shopeeStatus?.mode === 'open_api'
+                ? 'bg-[#00F2FF]/8 border-[#00F2FF]/50'
+                : 'bg-[#0D0F18] border-[#232738] hover:border-[#3A4058]'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-[#00F2FF]" />
+                <span className="text-sm font-bold text-white">Open API</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                AGUARDANDO ACESSO
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+              Estrutura reservada para busca automática de produtos, sincronização de comissão,
+              geração de links e conversões quando a Shopee disponibilizar credenciais válidas para
+              sua conta.
+            </p>
+            <p className="mt-3 text-[10px] text-amber-200/80">
+              Nenhuma API é marcada como conectada sem validação real de AppId/Secret.
+            </p>
+          </button>
+        </div>
+
+        <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-mono uppercase text-gray-500">Status atual</div>
+              <div className="text-xs font-bold text-white mt-1">
+                {loadingShopee
+                  ? 'Carregando...'
+                  : shopeeStatus?.mode === 'open_api'
+                    ? 'Open API selecionada — Manual continua disponível'
+                    : 'Modo Manual ativo — pronto para operar'}
+              </div>
+              <div className="text-[11px] text-gray-400 mt-1">
+                {shopeeStatus?.status_message ||
+                  'Use o fluxo manual para começar agora; a Open API fica preparada para o futuro.'}
+              </div>
+            </div>
+            <a
+              href="/publicacao"
+              className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#EE4D2D] hover:bg-[#D94024] text-white text-xs font-bold"
+            >
+              Ir para Publicação
+            </a>
           </div>
         </div>
       </div>

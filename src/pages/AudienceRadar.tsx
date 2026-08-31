@@ -196,12 +196,39 @@ export default function AudienceRadarPage() {
         limit: 15,
       })
 
-      // Exibir aviso com clareza e transparência: fonte real ainda não conectada
-      if (res.status === 'pending_integration') {
+      if (res.status === 'ok' && res.signals.length > 0) {
+        const analyzed = await audienceService.analyzeSignals({
+          signals: res.signals,
+          product_title: selectedProduct?.title || term,
+          product_id: selectedProduct?.id,
+          category: selectedCategory !== 'Todas' ? selectedCategory : selectedProduct?.category,
+          provider: selectedProvider,
+          is_test_data: false,
+        })
+
+        toast.success(
+          `${analyzed.total_analyzed} sinais reais do ${res.provider_name} analisados e adicionados ao Radar.`,
+        )
+
+        const [signalsRes, oppsRes] = await Promise.all([
+          audienceService.getSignals('', '-created', 1, 50),
+          audienceService.getOpportunities('', '-created', 1, 50),
+        ])
+        setSignals(signalsRes.items)
+        setOpportunities(oppsRes.items)
+      } else if (res.status === 'approval_required') {
+        toast.warning(`Provider ${res.provider_name}: ${res.status_label}`, {
+          description: res.message,
+          duration: 8000,
+        })
+      } else if (res.status === 'pending_integration') {
         toast.info(`Provider ${res.provider_name}: ${res.status_label}`, {
-          description:
-            'A arquitetura está pronta e aguardando conexão em ambiente de integração. Não geramos dados fictícios fingindo conexão.',
+          description: res.message,
           duration: 6000,
+        })
+      } else if (res.status === 'api_error') {
+        toast.error(`Provider ${res.provider_name}: ${res.status_label}`, {
+          description: res.message,
         })
       }
     } catch (err: unknown) {
