@@ -355,7 +355,43 @@ export default function CampaignLabPage() {
       setComplianceReview(res.compliance_review || null)
 
       setHasGenerated(true)
-      toast.success('Campanha completa gerada com sucesso pela IA!')
+
+      const selectedAngle = (res.selling_angles || []).find((a) => a.id === selectedAngleId)
+      const saved = await campaignService.saveCampaign({
+        product_id: productData.id || '',
+        discovered_id: productData.discovered_id || '',
+        product_title: productData.title,
+        product_image: productData.image_url,
+        product_category: productData.category,
+        platform: productData.platform,
+        product_url: productData.product_url,
+        affiliate_url: affiliateInput || productData.affiliate_url,
+        price_at_creation: productData.price,
+        promo_price_at_creation: productData.promo_price,
+        commission_rate_at_creation: productData.commission_rate,
+        commission_amount_at_creation: productData.commission_amount,
+        campaign_name: campaignName,
+        selected_angle_id: selectedAngleId,
+        selected_angle_title: selectedAngle?.title || 'Problema & Solução',
+        target_audience: selectedAngle?.public || 'Geral',
+        recommended_channels: ['TikTok', 'Instagram', 'YouTube Shorts'],
+        primary_channel: 'TikTok',
+        primary_format: 'script_30s',
+        status: 'draft',
+        product_intelligence: res.product_intelligence,
+        selling_angles: res.selling_angles || [],
+        hooks_bank: res.hooks_bank || [],
+        generated_copies: res.multi_channel_copies || {},
+        video_scripts: res.video_scripts_collection || {},
+        estimated_score: res.estimated_score || 87,
+        score_breakdown: res.score_breakdown,
+        compliance_status: res.compliance_review?.status || 'approved',
+        compliance_report: res.compliance_review,
+        variations: res.variations || [],
+      } as Partial<CampaignRecord> & { variations?: CampaignVariation[] })
+
+      setSavedCampaignId(saved.campaign_id)
+      toast.success('Campanha gerada e salva automaticamente no Histórico!')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Falha ao gerar campanha'
       console.error('Error generating campaign:', err)
