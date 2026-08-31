@@ -23,7 +23,7 @@ const localStatus = (mode?: 'manual' | 'open_api'): ShopeeConnectionStatus => {
   const saved =
     mode ||
     (typeof window !== 'undefined'
-      ? ((window.localStorage.getItem(STORAGE_KEY) as 'manual' | 'open_api' | null) || 'manual')
+      ? (window.localStorage.getItem(STORAGE_KEY) as 'manual' | 'open_api' | null) || 'manual'
       : 'manual')
 
   return {
