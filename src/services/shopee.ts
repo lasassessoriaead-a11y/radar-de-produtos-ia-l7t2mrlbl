@@ -1,6 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 
 const BASE_URL = import.meta.env.VITE_POCKETBASE_URL || ''
+const STORAGE_KEY = 'radar_shopee_mode'
 
 export type ShopeeConnectionStatus = {
   success: boolean
@@ -11,30 +12,80 @@ export type ShopeeConnectionStatus = {
   app_id_masked?: string
   status_message: string
   last_tested_at?: string
+  persisted?: boolean
   capabilities?: {
     manual_capabilities?: string[]
     api_capabilities_planned?: string[]
   }
 }
 
+const localStatus = (mode?: 'manual' | 'open_api'): ShopeeConnectionStatus => {
+  const saved =
+    mode ||
+    (typeof window !== 'undefined'
+      ? ((window.localStorage.getItem(STORAGE_KEY) as 'manual' | 'open_api' | null) || 'manual')
+      : 'manual')
+
+  return {
+    success: true,
+    marketplace: 'Shopee',
+    mode: saved,
+    manual_enabled: true,
+    api_status: 'waiting_credentials',
+    status_message:
+      saved === 'manual'
+        ? 'Modo Manual ativo: use Sub_id 1–5, gere o link na Shopee e importe o relatório de conversões no Radar.'
+        : 'Open API selecionada, mas ainda não conectada. Aguardando AppId/Secret liberados pela Shopee. O modo Manual continua disponível.',
+    persisted: false,
+    capabilities: {
+      manual_capabilities: [
+        'advanced_sub_ids_1_5',
+        'affiliate_link_registration',
+        'csv_conversion_import',
+        'deterministic_attribution_by_sub_id_5',
+      ],
+      api_capabilities_planned: [
+        'product_discovery',
+        'commission_sync',
+        'affiliate_link_generation',
+        'conversion_sync',
+      ],
+    },
+  }
+}
+
+async function tryBackend(path: string, init?: RequestInit) {
+  if (!BASE_URL) return null
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: pb.authStore.token,
+      },
+    })
+    if (!res.ok) return null
+    const raw = await res.text()
+    if (!raw) return null
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return null
+    }
+  } catch {
+    return null
+  }
+}
+
 export const shopeeService = {
   async getStatus(): Promise<ShopeeConnectionStatus> {
-    const res = await fetch(`${BASE_URL}/backend/v1/marketplaces/shopee/status`, {
-      headers: { Authorization: pb.authStore.token },
-    })
-    const raw = await res.text()
-    let data: any = {}
-    try {
-      data = raw ? JSON.parse(raw) : {}
-    } catch {
-      throw new Error(`Backend Shopee retornou resposta inválida (HTTP ${res.status}).`)
+    const backend = await tryBackend('/backend/v1/marketplaces/shopee/status')
+    if (backend?.success) {
+      const mode = backend.mode === 'open_api' ? 'open_api' : 'manual'
+      if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, mode)
+      return backend
     }
-    if (!res.ok) {
-      throw new Error(
-        data.error || data.message || `Falha ao carregar status da Shopee (HTTP ${res.status})`,
-      )
-    }
-    return data
+    return localStatus()
   },
 
   async setMode(mode: 'manual' | 'open_api'): Promise<{
@@ -43,27 +94,28 @@ export const shopeeService = {
     manual_enabled: boolean
     api_status: string
     status_message: string
+    persisted?: boolean
   }> {
-    const res = await fetch(`${BASE_URL}/backend/v1/marketplaces/shopee/mode`, {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, mode)
+    }
+
+    const backend = await tryBackend('/backend/v1/marketplaces/shopee/mode', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode }),
     })
-    const raw = await res.text()
-    let data: any = {}
-    try {
-      data = raw ? JSON.parse(raw) : {}
-    } catch {
-      throw new Error(`Backend Shopee retornou resposta inválida (HTTP ${res.status}).`)
+
+    if (backend?.success) return backend
+
+    const fallback = localStatus(mode)
+    return {
+      success: true,
+      mode: fallback.mode,
+      manual_enabled: true,
+      api_status: fallback.api_status,
+      status_message: fallback.status_message,
+      persisted: false,
     }
-    if (!res.ok) {
-      throw new Error(
-        data.error || data.message || `Falha ao alterar modo da Shopee (HTTP ${res.status})`,
-      )
-    }
-    return data
   },
 }
