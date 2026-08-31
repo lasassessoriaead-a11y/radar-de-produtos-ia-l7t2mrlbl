@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils'
 import { productsService } from '@/services/products'
 import type { ProductRecord } from '@/types/product'
 import { ProductDetailModal } from '@/components/ProductDetailModal'
+import LoginGate from '@/components/LoginGate'
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -47,7 +48,7 @@ export default function Layout() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null)
 
-  const { user, logout } = useAuth()
+  const { user, logout, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -187,6 +188,16 @@ export default function Layout() {
     setSearchQuery('')
     setSelectedProduct(prod)
   }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0B10] text-gray-300 flex items-center justify-center text-sm">
+        Conectando ao Radar...
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) return <LoginGate />
 
   return (
     <div className="flex h-screen w-full bg-[#0A0B10] text-[#F3F4F6] overflow-hidden">
