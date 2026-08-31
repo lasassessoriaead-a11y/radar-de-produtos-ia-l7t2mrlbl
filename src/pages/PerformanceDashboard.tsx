@@ -193,21 +193,48 @@ export default function PerformanceDashboard() {
 
     setIsImportingCsv(true)
     try {
-      // Parse CSV or TSV lines
-      const lines = csvText.trim().split('\n')
+      // Parse CSV/TSV preserving quoted values and Brazilian decimal commas.
+      const lines = csvText
+        .trim()
+        .split(/\r?\n/)
+        .filter((line) => line.trim().length > 0)
       if (lines.length < 2) {
         throw new Error('O CSV precisa de cabeçalho e pelo menos 1 linha de dados.')
       }
 
-      const headers = lines[0]
-        .split(/[,;\t]/)
-        .map((h) => h.trim().toLowerCase().replace(/["']/g, ''))
-      const rows = []
+      const headerLine = lines[0]
+      const delimiter = headerLine.includes('\t') ? '\t' : headerLine.includes(';') ? ';' : ','
+
+      const parseLine = (line: string) => {
+        const values: string[] = []
+        let current = ''
+        let quoted = false
+
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i]
+          if (ch === '"') {
+            if (quoted && line[i + 1] === '"') {
+              current += '"'
+              i++
+            } else {
+              quoted = !quoted
+            }
+          } else if (ch === delimiter && !quoted) {
+            values.push(current.trim())
+            current = ''
+          } else {
+            current += ch
+          }
+        }
+        values.push(current.trim())
+        return values
+      }
+
+      const headers = parseLine(headerLine).map((h) => h.trim().toLowerCase())
+      const rows: Array<Record<string, string>> = []
 
       for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim()
-        if (!line) continue
-        const values = line.split(/[,;\t]/).map((v) => v.trim().replace(/["']/g, ''))
+        const values = parseLine(lines[i])
         const obj: Record<string, string> = {}
         headers.forEach((h, idx) => {
           obj[h] = values[idx] || ''
