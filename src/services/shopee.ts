@@ -22,8 +22,18 @@ export const shopeeService = {
     const res = await fetch(`${BASE_URL}/backend/v1/marketplaces/shopee/status`, {
       headers: { Authorization: pb.authStore.token },
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Falha ao carregar status da Shopee')
+    const raw = await res.text()
+    let data: any = {}
+    try {
+      data = raw ? JSON.parse(raw) : {}
+    } catch {
+      throw new Error(`Backend Shopee retornou resposta inválida (HTTP ${res.status}).`)
+    }
+    if (!res.ok) {
+      throw new Error(
+        data.error || data.message || `Falha ao carregar status da Shopee (HTTP ${res.status})`,
+      )
+    }
     return data
   },
 
@@ -42,8 +52,18 @@ export const shopeeService = {
       },
       body: JSON.stringify({ mode }),
     })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Falha ao alterar modo da Shopee')
+    const raw = await res.text()
+    let data: any = {}
+    try {
+      data = raw ? JSON.parse(raw) : {}
+    } catch {
+      throw new Error(`Backend Shopee retornou resposta inválida (HTTP ${res.status}).`)
+    }
+    if (!res.ok) {
+      throw new Error(
+        data.error || data.message || `Falha ao alterar modo da Shopee (HTTP ${res.status})`,
+      )
+    }
     return data
   },
 }
