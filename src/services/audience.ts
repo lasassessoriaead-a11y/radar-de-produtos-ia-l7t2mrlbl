@@ -13,7 +13,7 @@ export const audienceService = {
   // 1. Obter Lista de Provedores de Audiência e Status
   async getProviders(): Promise<{ success: boolean; providers: AudienceProviderMeta[] }> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/providers`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/providers`,
       {
         method: 'GET',
         headers: {
@@ -116,7 +116,7 @@ export const audienceService = {
     target_public?: string
   }): Promise<IntentMapResponse> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/generate-intent-map`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/generate-intent-map`,
       {
         method: 'POST',
         headers: {
@@ -156,7 +156,7 @@ export const audienceService = {
     signals: AudienceSignalRecord[]
     architecture_ready?: boolean
   }> {
-    const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/search`, {
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ export const audienceService = {
     signals: AudienceSignalRecord[]
   }> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/analyze-signals`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/analyze-signals`,
       {
         method: 'POST',
         headers: {
@@ -317,7 +317,7 @@ export const audienceService = {
     message: string
   }> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/inbound-lead/capture`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/inbound-lead/capture`,
       {
         method: 'POST',
         headers: {
@@ -339,7 +339,7 @@ export const audienceService = {
   // Revogar Consentimento (Opt-Out)
   async revokeConsent(leadId: string): Promise<{ success: boolean; message: string }> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/inbound-lead/revoke-consent`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/inbound-lead/revoke-consent`,
       {
         method: 'POST',
         headers: {
@@ -373,7 +373,7 @@ export const audienceService = {
   // 9. Obter Relatório de Demanda Agregado
   async getDemandReport(periodDays = 30, category = ''): Promise<DemandReportResponse> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/audience/demand-report`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/demand-report`,
       {
         method: 'POST',
         headers: {
