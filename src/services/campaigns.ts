@@ -36,11 +36,12 @@ export const campaignService = {
     ai_summary?: string
   }): Promise<GenerateFullCampaignResponse> {
     const token = pb.authStore.token
-    const res = await fetch(`${BASE_URL}/backend/v1/campaigns/generate-full`, {
+    const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/campaign-generate`
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: token } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(productData),
     })
