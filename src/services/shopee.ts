@@ -100,22 +100,6 @@ export const shopeeService = {
       window.localStorage.setItem(STORAGE_KEY, mode)
     }
 
-    // IMPORTANT: Manual mode is intentionally frontend-only.
-    // Do NOT call the Skip backend here, because some published runtimes
-    // don't expose the optional Shopee settings route and return "File not found".
-    if (mode === 'manual') {
-      const fallback = localStatus('manual')
-      return {
-        success: true,
-        mode: 'manual',
-        manual_enabled: true,
-        api_status: fallback.api_status,
-        status_message: fallback.status_message,
-        persisted: false,
-      }
-    }
-
-    // Open API may use backend persistence in the future, if the route exists.
     const backend = await tryBackend('/backend/v1/marketplaces/shopee/mode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,6 +108,7 @@ export const shopeeService = {
 
     if (backend?.success) return backend
 
+    // Graceful local fallback keeps Manual usable during temporary backend outages.
     const fallback = localStatus(mode)
     return {
       success: true,
@@ -134,4 +119,6 @@ export const shopeeService = {
       persisted: false,
     }
   },
+}
+
 }
