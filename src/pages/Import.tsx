@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { productsService } from '@/services/products'
+import pb from '@/lib/pocketbase/client'
 import type { ProductRecord } from '@/types/product'
 import { toast } from 'sonner'
 
@@ -49,6 +50,8 @@ export default function ImportPage() {
     demand_score: '8',
   })
   const [manualLoading, setManualLoading] = useState(false)
+  const [quickUrl, setQuickUrl] = useState('')
+  const [quickLoading, setQuickLoading] = useState(false)
 
   // CSV State
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -72,6 +75,39 @@ export default function ImportPage() {
   })
   const [csvStep, setCsvStep] = useState<'upload' | 'mapping' | 'preview'>('upload')
   const [csvImporting, setCsvImporting] = useState(false)
+
+  const handleQuickImport = async () => {
+    const url = quickUrl.trim()
+    if (!url) {
+      toast.error('Cole o link do produto da Shopee.')
+      return
+    }
+    setQuickLoading(true)
+    try {
+      const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/product-import`
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pb.authStore.token}`,
+        },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Não foi possível importar o produto.')
+      const product = data.product as ProductRecord
+      if (Array.isArray(data.warnings) && data.warnings.length) {
+        toast.warning(data.warnings.join(' '))
+      } else {
+        toast.success('Produto importado automaticamente.')
+      }
+      navigate(`/laboratorio?productId=${product.id}`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao importar o link.')
+    } finally {
+      setQuickLoading(false)
+    }
+  }
 
   // Handle Manual Form Submit
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -335,7 +371,14 @@ export default function ImportPage() {
       </div>
 
       <Tabs defaultValue="manual" className="w-full">
-        <TabsList className="grid grid-cols-2 bg-[#12141F] p-1 border border-[#232738] rounded-2xl mb-6">
+        <TabsList className="grid grid-cols-3 bg-[#12141F] p-1 border border-[#232738] rounded-2xl mb-6">
+          <TabsTrigger
+            value="link"
+            className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00F2FF] text-xs font-bold py-2.5 rounded-xl gap-2"
+          >
+            <ArrowRight className="w-4 h-4" />
+            Importar por Link
+          </TabsTrigger>
           <TabsTrigger
             value="manual"
             className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00F2FF] text-xs font-bold py-2.5 rounded-xl gap-2"
@@ -351,6 +394,36 @@ export default function ImportPage() {
             Importação em Massa (CSV)
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="link" className="m-0 space-y-6">
+          <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-white">Importação automática por link</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Cole a URL do produto. O Radar tenta capturar título, imagem e preço, salva no Supabase e abre o Laboratório de Campanhas.
+              </p>
+            </div>
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                value={quickUrl}
+                onChange={(e) => setQuickUrl(e.target.value)}
+                placeholder="https://shopee.com.br/... ou https://s.shopee.com.br/..."
+                className="flex-1 h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00F2FF]"
+              />
+              <Button
+                type="button"
+                onClick={handleQuickImport}
+                disabled={quickLoading}
+                className="h-11 px-5 bg-gradient-to-r from-[#00F2FF] to-[#7000FF] text-[#0A0B10] font-bold"
+              >
+                {quickLoading ? 'Importando...' : 'Importar e abrir campanha'}
+              </Button>
+            </div>
+            <div className="text-[11px] text-gray-500">
+              A Shopee pode limitar alguns metadados. Quando isso acontecer, o Radar salva o link e leva você ao produto para completar somente o que faltar.
+            </div>
+          </div>
+        </TabsContent>
 
         {/* TAB 1: MANUAL ENTRY */}
         <TabsContent value="manual" className="m-0 space-y-6">
