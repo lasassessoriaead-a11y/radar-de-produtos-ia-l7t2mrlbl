@@ -164,17 +164,60 @@ export const publishingService = {
     mapping: Record<string, string>
     instructions: string
   }> {
-    const res = await fetch(`${BASE_URL}/backend/v1/tracking/shopee/prepare-subids`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+    // Shopee Manual mode: Sub_ids are deterministic and can be safely generated
+    // in the frontend. This avoids depending on an optional Skip backend route.
+    const clean = (value: string, fallback: string) => {
+      const normalized = String(value || '')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 48)
+      return normalized || fallback
+    }
+
+    const campaignId = String(payload.campaign_id || '')
+    const creativeId = String(payload.creative_id || '')
+    const productId = String(payload.product_id || '')
+    const productTitle = String(payload.product_title || '')
+    const channel = String(payload.channel || 'telegram')
+    const variation = String(payload.version_letter || payload.variation || 'A').toUpperCase()
+
+    const productSeed = productId
+      ? 'prd' + productId.slice(-10)
+      : clean(productTitle, 'produto').slice(0, 24)
+    const channelSeed = clean(channel.toLowerCase(), 'canal')
+    const campaignSeed = campaignId ? 'cmp' + campaignId.slice(-10) : 'campanha'
+    const creativeSeed = creativeId ? 'cr' + creativeId.slice(-8) : 'criativo'
+    const variationSeed = clean(variation, 'A')
+
+    const subIds = {
+      sub_id_1: clean(productSeed, 'produto'),
+      sub_id_2: clean(channelSeed, 'canal'),
+      sub_id_3: clean(campaignSeed, 'campanha'),
+      sub_id_4: clean(variationSeed + creativeSeed, 'Acriativo'),
+      sub_id_5: clean(
+        'rdr' +
+          (campaignId ? campaignId.slice(-6) : 'cmp') +
+          variationSeed +
+          (creativeId ? creativeId.slice(-6) : 'crt') +
+          channelSeed,
+        'rdrtracking',
+      ),
+    }
+
+    return {
+      success: true,
+      marketplace: 'Shopee',
+      mode: 'advanced',
+      sub_ids: subIds,
+      mapping: {
+        sub_id_1: 'produto',
+        sub_id_2: 'canal',
+        sub_id_3: 'campanha',
+        sub_id_4: 'variacao_criativo',
+        sub_id_5: 'tracking_unico',
       },
-      body: JSON.stringify(payload),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Falha ao preparar SubIDs da Shopee')
-    return data
+      instructions:
+        'Cole estes 5 valores nos campos Avançado da Shopee, gere o link afiliado na Shopee e depois salve esse link como destino no Radar.',
+    }
   },
 
   async createOrGetTrackingLink(payload: {
