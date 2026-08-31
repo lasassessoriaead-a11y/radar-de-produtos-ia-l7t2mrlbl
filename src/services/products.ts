@@ -78,7 +78,7 @@ export const aiService = {
     top_picks: Array<{ id?: string; title: string; score: number; reason: string }>
   }> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/radar/ai-recommendations`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ai-recommendations`,
       {
         method: 'POST',
         headers: {
@@ -100,7 +100,7 @@ export const aiService = {
     productId?: string,
     conversationId?: string | null,
   ): Promise<{ answer: string; conversation_id: string }> {
-    const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/radar/ask-analyst`, {
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ask-analyst`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
