@@ -28,7 +28,10 @@ function pickConversionImport(row, keys, fallback) {
 
 function parseAffiliateMoney(value) {
   if (typeof value === 'number') return value
-  let raw = String(value || '').trim().replace(/R\$/gi, '').replace(/\s/g, '')
+  let raw = String(value || '')
+    .trim()
+    .replace(/R\$/gi, '')
+    .replace(/\s/g, '')
   if (!raw) return 0
   if (raw.includes(',') && raw.includes('.')) {
     raw = raw.replace(/\./g, '').replace(',', '.')
@@ -122,11 +125,7 @@ routerAdd(
 
         const rawSubId = String(
           subId5 ||
-            pickConversionImport(
-              row,
-              ['sub_id', 'subid', 'tracking_id', 'trackingid', 'tag'],
-              '',
-            ),
+            pickConversionImport(row, ['sub_id', 'subid', 'tracking_id', 'trackingid', 'tag'], ''),
         ).trim()
 
         const saleAmount = parseAffiliateMoney(
@@ -177,7 +176,11 @@ routerAdd(
           ),
         ).trim()
         const marketplace = String(
-          pickConversionImport(row, ['marketplace', 'plataforma', 'origem'], body.marketplace || ''),
+          pickConversionImport(
+            row,
+            ['marketplace', 'plataforma', 'origem'],
+            body.marketplace || '',
+          ),
         ).trim()
         const rawStatus = pickConversionImport(
           row,
@@ -333,10 +336,7 @@ routerAdd(
           try {
             const link = $app.findRecordById('tracking_links', matchedLinkId)
             link.set('conversions_count', (link.getInt('conversions_count') || 0) + 1)
-            link.set(
-              'commission_earned',
-              (link.getFloat('commission_earned') || 0) + commAmount,
-            )
+            link.set('commission_earned', (link.getFloat('commission_earned') || 0) + commAmount)
             $app.save(link)
           } catch (_) {}
         }

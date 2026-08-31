@@ -15,18 +15,37 @@ routerAdd('POST', '/backend/v1/public/leads/capture', (e) => {
   const channel = (body.channel || 'landing_page').trim()
   const productInterest = (body.product_interest || '').trim().slice(0, 220)
   const category = (body.category || '').trim().slice(0, 120)
-  const declaredIntent = (body.declared_intent || 'Quero receber ofertas e conteúdos relacionados').trim().slice(0, 300)
+  const declaredIntent = (body.declared_intent || 'Quero receber ofertas e conteúdos relacionados')
+    .trim()
+    .slice(0, 300)
   const campaignId = (body.campaign_id || '').trim().slice(0, 80)
   const productId = (body.product_id || '').trim().slice(0, 80)
   const originSource = (body.origin_source || 'Landing pública /ofertas').trim().slice(0, 300)
   const consentAccepted = body.consent_accepted === true
-  const authorizedPurpose = (body.authorized_purpose || 'Receber ofertas, novidades e conteúdos relacionados aos interesses informados').trim().slice(0, 300)
-  const consentTextVersion = (body.consent_text_version || 'v1.0-public-capture').trim().slice(0, 80)
+  const authorizedPurpose = (
+    body.authorized_purpose ||
+    'Receber ofertas, novidades e conteúdos relacionados aos interesses informados'
+  )
+    .trim()
+    .slice(0, 300)
+  const consentTextVersion = (body.consent_text_version || 'v1.0-public-capture')
+    .trim()
+    .slice(0, 80)
 
   if (!identifier) return e.badRequestError('Informe um contato para receber as ofertas.')
-  if (!consentAccepted) return e.badRequestError('É necessário aceitar o consentimento para continuar.')
+  if (!consentAccepted)
+    return e.badRequestError('É necessário aceitar o consentimento para continuar.')
 
-  const allowedChannels = ['landing_page', 'form', 'telegram', 'newsletter', 'campaign_page', 'own_channel', 'whatsapp', 'other']
+  const allowedChannels = [
+    'landing_page',
+    'form',
+    'telegram',
+    'newsletter',
+    'campaign_page',
+    'own_channel',
+    'whatsapp',
+    'other',
+  ]
   const safeChannel = allowedChannels.includes(channel) ? channel : 'landing_page'
 
   // Resolve the single operator. Prefer explicit env; fallback to the first auth user.
@@ -65,9 +84,21 @@ routerAdd('POST', '/backend/v1/public/leads/capture', (e) => {
   if (productInterest) leadScore += 10
   if (category) leadScore += 5
   const intentLower = declaredIntent.toLowerCase()
-  if (intentLower.includes('compr') || intentLower.includes('cupom') || intentLower.includes('oferta')) leadScore += 10
+  if (
+    intentLower.includes('compr') ||
+    intentLower.includes('cupom') ||
+    intentLower.includes('oferta')
+  )
+    leadScore += 10
   leadScore = Math.min(100, leadScore)
-  const scoreTier = leadScore >= 80 ? 'hot' : leadScore >= 60 ? 'interested' : leadScore >= 40 ? 'potential' : 'cold'
+  const scoreTier =
+    leadScore >= 80
+      ? 'hot'
+      : leadScore >= 60
+        ? 'interested'
+        : leadScore >= 40
+          ? 'potential'
+          : 'cold'
 
   try {
     const leadsCol = $app.findCollectionByNameOrId('inbound_leads')
@@ -104,7 +135,7 @@ routerAdd('POST', '/backend/v1/public/leads/capture', (e) => {
     lead.set('declared_intent', declaredIntent)
     lead.set('lead_score', leadScore)
     lead.set('score_tier', scoreTier)
-    lead.set('status', leadIsNew ? 'new' : (lead.getString('status') || 'interested'))
+    lead.set('status', leadIsNew ? 'new' : lead.getString('status') || 'interested')
     lead.set('consent_status', 'active')
     lead.set('consent_date', now)
     lead.set('authorized_purpose', authorizedPurpose)
@@ -167,12 +198,15 @@ routerAdd('POST', '/backend/v1/public/leads/capture', (e) => {
     if (categories.length) contact.set('categories_of_interest', categories)
     contact.set('lead_score', leadScore)
     contact.set('relationship_score', relationshipScore)
-    contact.set('status', contactIsNew ? 'novo' : (contact.getString('status') || 'interessado'))
+    contact.set('status', contactIsNew ? 'novo' : contact.getString('status') || 'interessado')
     contact.set('is_customer', contact.getBool('is_customer'))
     contact.set('is_recurring_customer', contact.getBool('is_recurring_customer'))
     contact.set('purchases_count', contact.getInt('purchases_count') || 0)
     contact.set('next_best_action', 'Enviar conteúdo educativo')
-    contact.set('next_best_action_reason', 'Lead inbound com consentimento ativo e interesse declarado.')
+    contact.set(
+      'next_best_action_reason',
+      'Lead inbound com consentimento ativo e interesse declarado.',
+    )
     contact.set('last_interaction_date', now)
     contact.set('is_test_data', false)
 

@@ -6,7 +6,6 @@
 // 3. Status 'pending_integration' (Integração pendente) enquanto não houver conexão externa real
 // 4. Sem dados fictícios simulando conexão real. Suporte explícito a dados legítimos de teste identificados com 'is_test_data = true'.
 
-
 // Reddit provider helpers.
 // Commercial/monetized use stays disabled unless the operator explicitly confirms
 // that Reddit approved the intended commercial Data API use.
@@ -45,7 +44,7 @@ function getRedditProviderConfig() {
   const clientSecret = ($os.getenv('REDDIT_CLIENT_SECRET') || '').trim()
   const userAgent = ($os.getenv('REDDIT_USER_AGENT') || '').trim()
   const commercialApproved =
-    (($os.getenv('REDDIT_COMMERCIAL_APPROVED') || '').trim().toLowerCase() === 'true')
+    ($os.getenv('REDDIT_COMMERCIAL_APPROVED') || '').trim().toLowerCase() === 'true'
 
   return {
     clientId,

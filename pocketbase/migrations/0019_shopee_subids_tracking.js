@@ -25,14 +25,7 @@ migrate(
       }
     }
 
-    const shopeeFields = [
-      'marketplace',
-      'sub_id_1',
-      'sub_id_2',
-      'sub_id_3',
-      'sub_id_4',
-      'sub_id_5',
-    ]
+    const shopeeFields = ['marketplace', 'sub_id_1', 'sub_id_2', 'sub_id_3', 'sub_id_4', 'sub_id_5']
 
     for (let i = 0; i < shopeeFields.length; i++) {
       addTextField('tracking_links', shopeeFields[i])
@@ -82,14 +75,7 @@ migrate(
       } catch (_) {}
     }
 
-    const fields = [
-      'marketplace',
-      'sub_id_1',
-      'sub_id_2',
-      'sub_id_3',
-      'sub_id_4',
-      'sub_id_5',
-    ]
+    const fields = ['marketplace', 'sub_id_1', 'sub_id_2', 'sub_id_3', 'sub_id_4', 'sub_id_5']
     for (let i = 0; i < fields.length; i++) {
       removeField('tracking_links', fields[i])
       removeField('conversions', fields[i])

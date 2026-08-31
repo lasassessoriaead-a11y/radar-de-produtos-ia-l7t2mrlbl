@@ -68,15 +68,17 @@ export default function LeadCapturePage() {
             Receba ofertas que façam sentido para você.
           </h1>
           <p className="max-w-xl text-base leading-7 text-slate-300">
-            Informe o que você procura e receba apenas conteúdos e oportunidades relacionados ao seu interesse.
-            Sem listas compradas e sem contato sem permissão.
+            Informe o que você procura e receba apenas conteúdos e oportunidades relacionados ao seu
+            interesse. Sem listas compradas e sem contato sem permissão.
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <Tag className="mb-3 h-5 w-5 text-cyan-300" />
               <p className="text-sm font-bold">Ofertas relevantes</p>
-              <p className="mt-1 text-xs text-slate-400">Baseadas no interesse que você informar.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Baseadas no interesse que você informar.
+              </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <ShieldCheck className="mb-3 h-5 w-5 text-emerald-300" />
@@ -86,7 +88,9 @@ export default function LeadCapturePage() {
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <Gift className="mb-3 h-5 w-5 text-violet-300" />
               <p className="text-sm font-bold">Descobertas úteis</p>
-              <p className="mt-1 text-xs text-slate-400">Produtos, promoções e conteúdos relacionados.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Produtos, promoções e conteúdos relacionados.
+              </p>
             </div>
           </div>
         </section>
@@ -98,7 +102,8 @@ export default function LeadCapturePage() {
               <h2 className="text-2xl font-black">Cadastro realizado</h2>
               <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{message}</p>
               <p className="mt-5 text-xs text-slate-500">
-                Você poderá revogar seu consentimento a qualquer momento pelos canais disponibilizados.
+                Você poderá revogar seu consentimento a qualquer momento pelos canais
+                disponibilizados.
               </p>
             </div>
           ) : (
@@ -112,7 +117,9 @@ export default function LeadCapturePage() {
 
               <form onSubmit={submit} className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-300">Nome (opcional)</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-300">
+                    Nome (opcional)
+                  </label>
                   <Input
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -150,7 +157,9 @@ export default function LeadCapturePage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-300">Categoria (opcional)</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-300">
+                    Categoria (opcional)
+                  </label>
                   <Input
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -176,8 +185,9 @@ export default function LeadCapturePage() {
                     className="mt-1 h-4 w-4"
                   />
                   <span className="text-xs leading-5 text-slate-300">
-                    Autorizo o uso deste contato para receber ofertas, novidades e conteúdos relacionados aos
-                    interesses que informei. Sei que posso revogar essa autorização futuramente.
+                    Autorizo o uso deste contato para receber ofertas, novidades e conteúdos
+                    relacionados aos interesses que informei. Sei que posso revogar essa autorização
+                    futuramente.
                   </span>
                 </label>
 
@@ -192,7 +202,9 @@ export default function LeadCapturePage() {
                   disabled={submitting}
                   className="h-12 w-full bg-gradient-to-r from-cyan-400 to-violet-500 font-black text-slate-950 hover:opacity-90"
                 >
-                  {submitting ? 'Registrando...' : (
+                  {submitting ? (
+                    'Registrando...'
+                  ) : (
                     <span className="flex items-center gap-2">
                       Quero receber oportunidades <Send className="h-4 w-4" />
                     </span>
@@ -200,7 +212,8 @@ export default function LeadCapturePage() {
                 </Button>
 
                 <p className="text-center text-[11px] leading-4 text-slate-500">
-                  Seus dados não são coletados de redes sociais e não são adicionados sem sua ação voluntária.
+                  Seus dados não são coletados de redes sociais e não são adicionados sem sua ação
+                  voluntária.
                 </p>
               </form>
             </>

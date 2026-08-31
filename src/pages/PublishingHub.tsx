@@ -1046,8 +1046,8 @@ export default function PublishingHub() {
                         Shopee — Sub_id Avançado 1–5
                       </div>
                       <p className="text-[11px] text-gray-400 mt-1">
-                        Gere estes códigos antes de clicar em “Adicionar ao Link” na Shopee. O Sub_id
-                        5 é a chave principal de atribuição da venda no Radar.
+                        Gere estes códigos antes de clicar em “Adicionar ao Link” na Shopee. O
+                        Sub_id 5 é a chave principal de atribuição da venda no Radar.
                       </p>
                     </div>
                     <Button
@@ -1074,7 +1074,9 @@ export default function PublishingHub() {
                           key={label}
                           className="rounded-lg border border-[#3A2A22] bg-[#0E1017] p-2"
                         >
-                          <div className="text-[9px] uppercase font-mono text-gray-500">{label}</div>
+                          <div className="text-[9px] uppercase font-mono text-gray-500">
+                            {label}
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <code className="text-[11px] text-white flex-1 truncate">{value}</code>
                             <button
