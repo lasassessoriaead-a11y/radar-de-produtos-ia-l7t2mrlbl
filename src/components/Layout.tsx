@@ -209,8 +209,8 @@ export default function Layout() {
         )}
       >
         {/* Brand Logo */}
-        <div>
-          <div className="flex items-center justify-between h-16 px-4 border-b border-[#1E2232]">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-[#1E2232]">
             {!collapsed ? (
               <NavLink to="/" className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00F2FF] to-[#7000FF] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
@@ -247,7 +247,7 @@ export default function Layout() {
           </div>
 
           {/* Nav Links */}
-          <nav className="p-3 space-y-1.5 mt-2">
+          <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 mt-2 scrollbar-thin">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.to
