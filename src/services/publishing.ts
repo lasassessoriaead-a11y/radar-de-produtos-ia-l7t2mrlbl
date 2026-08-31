@@ -142,6 +142,41 @@ export const publishingService = {
   },
 
   // Tracking Links & UTM Generator
+  async prepareShopeeSubIds(payload: {
+    campaign_id?: string
+    creative_id?: string
+    product_id?: string
+    product_title?: string
+    channel?: string
+    version_letter?: string
+    variation?: string
+  }): Promise<{
+    success: boolean
+    marketplace: 'Shopee'
+    mode: 'advanced'
+    sub_ids: {
+      sub_id_1: string
+      sub_id_2: string
+      sub_id_3: string
+      sub_id_4: string
+      sub_id_5: string
+    }
+    mapping: Record<string, string>
+    instructions: string
+  }> {
+    const res = await fetch(`${BASE_URL}/backend/v1/tracking/shopee/prepare-subids`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: pb.authStore.token,
+      },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Falha ao preparar SubIDs da Shopee')
+    return data
+  },
+
   async createOrGetTrackingLink(payload: {
     campaign_id?: string
     variation_id?: string
@@ -157,12 +192,28 @@ export const publishingService = {
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
+    marketplace?: string
+    shopee_sub_ids?: {
+      sub_id_1: string
+      sub_id_2: string
+      sub_id_3: string
+      sub_id_4: string
+      sub_id_5: string
+    }
   }): Promise<{
     success: boolean
     tracking_link_id: string
     slug: string
     short_url: string
     sub_id: string
+    marketplace?: string
+    shopee_sub_ids?: {
+      sub_id_1: string
+      sub_id_2: string
+      sub_id_3: string
+      sub_id_4: string
+      sub_id_5: string
+    }
     destination_url: string
     raw_clicks: number
     valid_clicks: number
