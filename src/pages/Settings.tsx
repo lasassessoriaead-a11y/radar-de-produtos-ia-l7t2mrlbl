@@ -29,6 +29,9 @@ export default function SettingsPage() {
   const [shopeeStatus, setShopeeStatus] = useState<ShopeeConnectionStatus | null>(null)
   const [loadingShopee, setLoadingShopee] = useState(false)
   const [changingShopeeMode, setChangingShopeeMode] = useState(false)
+  const [mlStatus, setMlStatus] = useState<any>(null)
+  const [mlLoading, setMlLoading] = useState(false)
+  const [mlConnecting, setMlConnecting] = useState(false)
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,8 +76,85 @@ export default function SettingsPage() {
     }
   }
 
+  const loadMercadoLivreStatus = async () => {
+    setMlLoading(true)
+    try {
+      const res = await fetch('/api/mercadolivre/status', { cache: 'no-store' })
+      const data = await res.json()
+      setMlStatus(data)
+    } catch {
+      setMlStatus({ configured: false, connected: false })
+    } finally {
+      setMlLoading(false)
+    }
+  }
+
+  const connectMercadoLivre = async () => {
+    setMlConnecting(true)
+    try {
+      const res = await fetch('/api/mercadolivre/start', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok || !data?.authorization_url) {
+        throw new Error(data?.error || 'Não foi possível iniciar a conexão com o Mercado Livre.')
+      }
+      sessionStorage.setItem('radar_ml_oauth_state', data.state)
+      sessionStorage.setItem('radar_ml_code_verifier', data.code_verifier)
+      window.location.href = data.authorization_url
+    } catch (err: any) {
+      toast.error(err.message || 'Não foi possível iniciar a conexão com o Mercado Livre.')
+      setMlConnecting(false)
+    }
+  }
+
+  const completeMercadoLivreOAuth = async () => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('ml_code')
+    const state = params.get('ml_state')
+    const error = params.get('ml_error')
+    if (error) {
+      toast.error(`Mercado Livre recusou a autorização: ${error}`)
+      window.history.replaceState({}, '', '/configuracoes')
+      return
+    }
+    if (!code) return
+
+    const expectedState = sessionStorage.getItem('radar_ml_oauth_state')
+    const verifier = sessionStorage.getItem('radar_ml_code_verifier')
+    if (!state || !expectedState || state !== expectedState || !verifier) {
+      toast.error('Não foi possível validar a segurança da conexão com o Mercado Livre.')
+      window.history.replaceState({}, '', '/configuracoes')
+      return
+    }
+
+    setMlConnecting(true)
+    try {
+      const res = await fetch('/api/mercadolivre/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, code_verifier: verifier }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Falha ao concluir a conexão com o Mercado Livre.')
+      }
+      sessionStorage.removeItem('radar_ml_oauth_state')
+      sessionStorage.removeItem('radar_ml_code_verifier')
+      toast.success('Mercado Livre conectado oficialmente ao Radar IA.')
+      window.history.replaceState({}, '', '/configuracoes')
+      await loadMercadoLivreStatus()
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao concluir a conexão com o Mercado Livre.')
+    } finally {
+      setMlConnecting(false)
+    }
+  }
+
   useEffect(() => {
-    if (user?.id) loadShopeeStatus()
+    if (user?.id) {
+      loadShopeeStatus()
+      loadMercadoLivreStatus()
+      completeMercadoLivreOAuth()
+    }
   }, [user?.id])
 
   return (
@@ -363,67 +443,100 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Mercado Livre API Token Configuration */}
+      {/* Mercado Livre Official OAuth Connection */}
       <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#212538]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-[#212538]">
           <div className="flex items-center gap-2.5">
             <Key className="w-5 h-5 text-[#FFE600]" />
             <div>
               <h3 className="text-sm font-bold text-white">
-                Conector da API do Mercado Livre (Site MLB)
+                Mercado Livre — API Oficial
               </h3>
               <p className="text-[11px] text-gray-400">
-                Configure seu Access Token gratuito do Mercado Livre para buscas em tempo real
+                OAuth 2.0 com Authorization Code, Refresh Token e PKCE.
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono px-2.5 py-1 rounded bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 font-semibold">
-            Conectado (Fase 2)
+          <span className={`text-xs font-mono px-2.5 py-1 rounded border font-semibold ${
+            mlStatus?.connected
+              ? 'bg-[#00E676]/10 text-[#00E676] border-[#00E676]/30'
+              : mlStatus?.configured
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                : 'bg-gray-500/10 text-gray-400 border-gray-500/30'
+          }`}>
+            {mlLoading
+              ? 'Verificando...'
+              : mlStatus?.connected
+                ? 'CONECTADO'
+                : mlStatus?.configured
+                  ? 'PRONTO PARA AUTORIZAR'
+                  : 'AGUARDANDO CREDENCIAIS'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-2">
-            <h4 className="font-bold text-white flex items-center gap-1.5">
+            <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
               <Shield className="w-4 h-4 text-[#00F2FF]" />
-              Como obter seu token gratuito do Mercado Livre:
+              Segurança
             </h4>
-            <ol className="list-decimal list-inside space-y-1 text-gray-300 text-[11px] leading-relaxed">
-              <li>
-                Acesse o portal de desenvolvedores do Mercado Livre
-                (developers.mercadolibre.com.br).
-              </li>
-              <li>Crie uma aplicação gratuita para obter seu Client ID e Client Secret.</li>
-              <li>Gere o Access Token temporário de teste para efetuar chamadas na API.</li>
-              <li>Ou configure a variável de ambiente MERCADO_LIVRE_ACCESS_TOKEN no backend.</li>
-            </ol>
+            <ul className="space-y-1 text-gray-300 text-[11px]">
+              <li>✓ Authorization Code</li>
+              <li>✓ Refresh Token</li>
+              <li>✓ PKCE S256</li>
+              <li>✓ Sessão criptografada em cookie HttpOnly</li>
+              <li>✓ Client Secret nunca exposto no navegador</li>
+            </ul>
           </div>
 
           <div className="p-4 rounded-xl bg-[#0D0F18] border border-[#212538] space-y-3">
-            <h4 className="font-bold text-white flex items-center gap-1.5">
-              <Database className="w-4 h-4 text-[#FFE600]" />
-              Dados Fornecidos pelo Conector ML:
-            </h4>
-            <ul className="space-y-1 text-gray-300 text-[11px]">
-              <li>
-                <strong className="text-white">✓ Dados Reais:</strong> Título, Imagem, Preço, Preço
-                Original, Quantidade de Vendas, Reputação/Avaliação, Vendedor, Link.
-              </li>
-              <li>
-                <strong className="text-[#00F2FF]">✓ Calculado:</strong> Score de Oportunidade
-                (0-100), Nível (Hot/Good/Test/Low).
-              </li>
-              <li>
-                <strong className="text-[#C084FC]">✓ Estimado pela IA:</strong> Potencial de
-                conversão, pontos fortes/fracos, público e ângulo.
-              </li>
-              <li>
-                <strong className="text-gray-400">✕ Indisponível:</strong> Comissão de afiliado e
-                link direto de afiliado (não fornecidos na API de catálogo do ML).
-              </li>
-            </ul>
+            <div className="text-[10px] font-mono uppercase text-gray-500">Status da conta</div>
+            <div className="text-xs font-bold text-white">
+              {mlStatus?.connected
+                ? `Conta Mercado Livre conectada${mlStatus?.nickname ? ` — ${mlStatus.nickname}` : ''}`
+                : mlStatus?.configured
+                  ? 'Credenciais configuradas. Falta autorizar a conta.'
+                  : 'Adicione App ID e Client Secret na Vercel.'}
+            </div>
+            {mlStatus?.user_id && (
+              <div className="text-[10px] text-gray-500 font-mono">
+                User ID ML: {mlStatus.user_id}
+              </div>
+            )}
           </div>
         </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            type="button"
+            onClick={connectMercadoLivre}
+            disabled={mlConnecting || !mlStatus?.configured}
+            className="bg-[#FFE600] hover:bg-[#E6CF00] text-black font-bold"
+          >
+            {mlConnecting
+              ? 'Conectando...'
+              : mlStatus?.connected
+                ? 'Reconectar Mercado Livre'
+                : 'Conectar Mercado Livre'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={loadMercadoLivreStatus}
+            disabled={mlLoading}
+            className="border-[#2A3047] bg-[#0D0F18] text-gray-300"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${mlLoading ? 'animate-spin' : ''}`} />
+            Atualizar status
+          </Button>
+        </div>
+
+        {!mlStatus?.configured && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200">
+            Na Vercel, crie as variáveis <code>MERCADO_LIVRE_APP_ID</code> e{' '}
+            <code>MERCADO_LIVRE_CLIENT_SECRET</code>. O Secret deve ficar somente na Vercel.
+          </div>
+        )}
       </div>
 
       {/* Future Marketplace Integrations Status */}
