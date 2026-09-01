@@ -1,3 +1,17 @@
+import crypto from 'node:crypto'
+
+function key(secret: string) {
+  return crypto.createHash('sha256').update(secret).digest()
+}
+
+function encrypt(payload: object, secret: string) {
+  const iv = crypto.randomBytes(12)
+  const cipher = crypto.createCipheriv('aes-256-gcm', key(secret), iv)
+  const enc = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()])
+  const tag = cipher.getAuthTag()
+  return Buffer.concat([iv, tag, enc]).toString('base64url')
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -15,7 +29,9 @@ export default async function handler(req: any, res: any) {
     })
   }
 
-  const { code, code_verifier } = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+  const { code, code_verifier } =
+    typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+
   if (!code || !code_verifier) {
     return res.status(400).json({ error: 'Código de autorização ou PKCE ausente.' })
   }
@@ -42,15 +58,27 @@ export default async function handler(req: any, res: any) {
     })
   }
 
-  // Por segurança, o refresh token não é devolvido em texto para a interface.
-  // A persistência segura será ativada no backend após as credenciais serem configuradas.
-  return res.status(200).json({
-    success: true,
+  const session = {
     access_token: token.access_token,
-    expires_in: token.expires_in,
+    refresh_token: token.refresh_token,
+    expires_at: Date.now() + Number(token.expires_in || 0) * 1000,
     user_id: token.user_id,
     scope: token.scope,
     token_type: token.token_type,
+  }
+
+  const value = encrypt(session, clientSecret)
+  res.setHeader(
+    'Set-Cookie',
+    `radar_ml_session=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=15552000`,
+  )
+
+  return res.status(200).json({
+    success: true,
+    user_id: token.user_id,
+    scope: token.scope,
+    token_type: token.token_type,
+    expires_in: token.expires_in,
     refresh_token_received: Boolean(token.refresh_token),
   })
 }
