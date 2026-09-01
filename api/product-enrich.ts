@@ -53,9 +53,10 @@ export default async function handler(req: any, res: any) {
     if (!rr.ok) continue
     const items = Array.isArray(data.items) ? data.items : []
     best =
-      items.find((x: any) => /shopee\.com\.br/i.test(String(x.link || ''))) ||
-      items[0] ||
-      null
+      items.find((x: any) => {
+        const hay = [x.link, x.title, x.snippet, JSON.stringify(x.pagemap || {})].join(' ')
+        return /shopee\.com\.br/i.test(String(x.link || '')) && (!ids || hay.includes(ids.itemid))
+      }) || null
     if (best) break
   }
 
@@ -91,6 +92,7 @@ export default async function handler(req: any, res: any) {
     promo_price: price,
     description: snippet,
     canonical_url: best.link || productUrl,
-    source: 'google_search_fallback',
+    source: 'google_search_fallback_exact',
+    confidence: ids ? 'exact_item_id' : 'url_match',
   })
 }
