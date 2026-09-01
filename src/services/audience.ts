@@ -12,98 +12,93 @@ import type {
 export const audienceService = {
   // 1. Obter Lista de Provedores de Audiência e Status
   async getProviders(): Promise<{ success: boolean; providers: AudienceProviderMeta[] }> {
-    const res = await fetch(
-      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/providers`,
-      {
+    const backendUrl =
+      import.meta.env.VITE_BACKEND_URL ||
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+
+    const [backendRes, googleRes] = await Promise.allSettled([
+      fetch(`${backendUrl}/backend/v1/audience/providers`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: pb.authStore.token,
         },
-      },
-    )
+      }),
+      fetch('/api/audience-search', { method: 'GET' }),
+    ])
 
-    if (!res.ok) {
-      // Fallback local caso haja falha de rota
-      return {
-        success: true,
-        providers: [
-          {
-            id: 'reddit',
-            name: 'Reddit',
-            category: 'social_discussion',
-            status: 'pending_integration',
-            status_label: 'Integração pendente',
-            is_primary: true,
-            order: 1,
-            description:
-              'Primeiro Audience Source Provider. Adaptador e pipeline analítico estruturados para busca de discussões públicas, subreddits, comentários e intenção transacional.',
-            supported_features: [
-              'Busca por termo / produto',
-              'Filtro por subreddit (ex: r/carros, r/brasil)',
-              'Intent Score Engine',
-              'Relevance Score Engine',
-              'Match Engine Produto × Dor',
-            ],
-            required_credentials: [
-              'REDDIT_CLIENT_ID',
-              'REDDIT_CLIENT_SECRET',
-              'REDDIT_USER_AGENT',
-              'REDDIT_COMMERCIAL_APPROVED',
-            ],
-            is_configured: false,
-          },
-          {
-            id: 'youtube',
-            name: 'YouTube',
-            category: 'video_search',
-            status: 'pending_integration',
-            status_label: 'Preparado na arquitetura (futuro)',
-            is_primary: false,
-            order: 2,
-            description:
-              'Provider preparado na arquitetura para captura de comentários públicos, dúvidas de reviews e tendências de busca em vídeo.',
-            supported_features: [
-              'Análise de comentários',
-              'Dúvidas em reviews',
-              'Transcrições públicas',
-            ],
-            required_credentials: ['YOUTUBE_API_KEY'],
-            is_configured: false,
-          },
-          {
-            id: 'google_search',
-            name: 'Google Search & Trends',
-            category: 'search_intent',
-            status: 'pending_integration',
-            status_label: 'Preparado na arquitetura (futuro)',
-            is_primary: false,
-            order: 3,
-            description:
-              'Provider preparado para termos de busca de alta intenção transacional, perguntas do Google "As pessoas também perguntam" e volumes de busca.',
-            supported_features: ['People Also Ask', 'Search Autocomplete', 'Intenção transacional'],
-            required_credentials: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
-            is_configured: false,
-          },
-          {
-            id: 'forums_reviews',
-            name: 'Fóruns & Reviews Públicos',
-            category: 'community_reviews',
-            status: 'pending_integration',
-            status_label: 'Preparado na arquitetura (futuro)',
-            is_primary: false,
-            order: 4,
-            description:
-              'Provider preparado para agregação de avaliações públicas, queixas e discussões abertas em fóruns de nicho.',
-            supported_features: ['Mapeamento de objeções', 'Dor de consumo recorrente'],
-            required_credentials: [],
-            is_configured: false,
-          },
-        ],
-      }
+    let providers: AudienceProviderMeta[] = []
+
+    if (backendRes.status === 'fulfilled' && backendRes.value.ok) {
+      const data = await backendRes.value.json()
+      providers = data.providers || []
     }
 
-    return await res.json()
+    if (!providers.length) {
+      providers = [
+        {
+          id: 'google_search',
+          name: 'Google Search',
+          category: 'search_intent',
+          status: 'pending_integration',
+          status_label: 'Aguardando credenciais',
+          is_primary: true,
+          order: 1,
+          description: 'Busca real de intenção, dúvidas, comparações e oportunidades de conteúdo.',
+          supported_features: ['Busca real', 'Perguntas e comparações', 'Intenção transacional'],
+          required_credentials: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
+          is_configured: false,
+        },
+        {
+          id: 'reddit',
+          name: 'Reddit',
+          category: 'social_discussion',
+          status: 'pending_integration',
+          status_label: 'Integração pendente',
+          is_primary: false,
+          order: 2,
+          description: 'Discussões públicas e linguagem espontânea de consumidores.',
+          supported_features: ['Discussões', 'Dúvidas', 'Objeções'],
+          required_credentials: ['REDDIT_CLIENT_ID', 'REDDIT_CLIENT_SECRET'],
+          is_configured: false,
+        },
+        {
+          id: 'youtube',
+          name: 'YouTube',
+          category: 'video_search',
+          status: 'pending_integration',
+          status_label: 'Integração pendente',
+          is_primary: false,
+          order: 3,
+          description: 'Busca de vídeos e reviews para sinais de interesse por tema.',
+          supported_features: ['Reviews', 'Busca em vídeo', 'Tendências de conteúdo'],
+          required_credentials: ['YOUTUBE_API_KEY'],
+          is_configured: false,
+        },
+      ]
+    }
+
+    if (googleRes.status === 'fulfilled' && googleRes.value.ok) {
+      const g = await googleRes.value.json()
+      const idx = providers.findIndex((p) => p.id === 'google_search')
+      const googleProvider: AudienceProviderMeta = {
+        id: 'google_search',
+        name: 'Google Search',
+        category: 'search_intent',
+        status: g.is_configured ? 'active' : 'pending_integration',
+        status_label: g.status_label || (g.is_configured ? 'Ativo' : 'Aguardando credenciais'),
+        is_primary: true,
+        order: 1,
+        description: 'Busca real de intenção, dúvidas, comparações e oportunidades de conteúdo.',
+        supported_features: ['Busca real', 'Perguntas e comparações', 'Intenção transacional'],
+        required_credentials: ['GOOGLE_SEARCH_API_KEY', 'GOOGLE_SEARCH_CX'],
+        is_configured: Boolean(g.is_configured),
+      }
+      if (idx >= 0) providers[idx] = googleProvider
+      else providers.unshift(googleProvider)
+    }
+
+    return { success: true, providers: providers.sort((a, b) => a.order - b.order) }
   },
 
   // 2. Gerar Mapa de Intenção e Banco de Termos via IA
@@ -156,7 +151,15 @@ export const audienceService = {
     signals: AudienceSignalRecord[]
     architecture_ready?: boolean
   }> {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/audience/search`, {
+    const backendUrl =
+      import.meta.env.VITE_BACKEND_URL ||
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+    const endpoint =
+      params.provider === 'google_search'
+        ? '/api/audience-search'
+        : `${backendUrl}/backend/v1/audience/search`
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
