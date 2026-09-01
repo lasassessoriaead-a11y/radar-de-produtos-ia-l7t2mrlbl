@@ -101,6 +101,69 @@ export default function ImportPage() {
       if (!res.ok) throw new Error(data.error || 'Não foi possível importar o produto.')
       if (!data.success || !data.product) {
         const detected = data.detected || {}
+
+        try {
+          const enrichRes = await fetch('/api/product-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_url: data.resolved_url || url,
+              detected_title: detected.title || '',
+              shopee_ids: data.shopee_ids || null,
+            }),
+          })
+          const enrich = await enrichRes.json()
+
+          if (
+            enrichRes.ok &&
+            enrich?.found &&
+            enrich?.verified &&
+            enrich?.title &&
+            enrich?.image_url &&
+            Number(enrich?.price) > 0
+          ) {
+            const product = await productsService.createProduct({
+              title: enrich.title,
+              image_url: enrich.image_url,
+              platform: 'Shopee',
+              category: 'Geral',
+              niche: '',
+              price: Number(enrich.price),
+              promo_price: Number(enrich.promo_price || enrich.price),
+              commission_rate: 0,
+              commission_amount: 0,
+              sales_count: 0,
+              reviews_count: 0,
+              rating: 0,
+              seller: '',
+              product_url: enrich.canonical_url || data.resolved_url || url,
+              affiliate_url: url,
+              competition_level: 5,
+              trends_score: 0,
+              demand_score: 0,
+              opportunity_score: 0,
+              opportunity_level: 'test',
+              source: 'google_verified_fallback',
+              metadata: {
+                imported_at: new Date().toISOString(),
+                source_url: url,
+                resolved_url: data.resolved_url || null,
+                shopee_ids: data.shopee_ids || null,
+                enrichment_source: enrich.source,
+                enrichment_confidence: enrich.confidence,
+                title_similarity: enrich.similarity,
+                verified: true,
+              },
+            })
+
+            toast.success('Produto validado por fonte secundária e importado com sucesso.')
+            navigate(`/laboratorio?productId=${product.id}`)
+            return
+          }
+        } catch (enrichErr) {
+          console.warn('Secondary Shopee enrichment unavailable:', enrichErr)
+        }
+
         const detail = [
           detected.title ? `Título detectado: ${detected.title}` : '',
           detected.price ? `Preço detectado: R$ ${Number(detected.price).toFixed(2)}` : '',
