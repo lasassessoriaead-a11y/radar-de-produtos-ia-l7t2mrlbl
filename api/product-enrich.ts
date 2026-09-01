@@ -16,6 +16,29 @@ function cleanTitle(title: string) {
     .trim()
 }
 
+function normWords(value: string) {
+  const stop = new Set(['de','da','do','das','dos','e','com','para','por','em','um','uma','a','o'])
+  return String(value || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/).filter(w => w.length > 2 && !stop.has(w))
+}
+
+function titleSimilarity(a: string, b: string) {
+  const A = new Set(normWords(a))
+  const B = new Set(normWords(b))
+  if (!A.size || !B.size) return 0
+  let hit = 0
+  for (const w of A) if (B.has(w)) hit++
+  return hit / Math.max(A.size, B.size)
+}
+
+function priceFromText(value: string) {
+  const m = String(value || '').match(/R\$\s*([0-9.]+(?:,[0-9]{1,2})?)/i)
+  if (!m) return 0
+  return Number(m[1].replace(/\./g, '').replace(',', '.')) || 0
+}
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
@@ -29,15 +52,27 @@ export default async function handler(req: any, res: any) {
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
   const productUrl = String(body.product_url || body.url || '').trim()
-  const ids = extractShopeeIds(productUrl)
+  const detectedTitle = cleanTitle(String(body.detected_title || body.title || '').trim())
+  const suppliedIds = body.shopee_ids && body.shopee_ids.shopid && body.shopee_ids.itemid
+    ? { shopid: String(body.shopee_ids.shopid), itemid: String(body.shopee_ids.itemid) }
+    : null
+  const ids = suppliedIds || extractShopeeIds(productUrl)
   if (!productUrl) return res.status(400).json({ error: 'URL do produto ausente.' })
 
-  const queries = ids
-    ? [
-        `site:shopee.com.br "${ids.itemid}"`,
-        `site:shopee.com.br "${ids.shopid}" "${ids.itemid}"`,
-      ]
-    : [`site:shopee.com.br "${productUrl}"`]
+  const titleQuery = detectedTitle
+    ? normWords(detectedTitle).slice(0, 10).join(' ')
+    : ''
+  const queries = [
+    ...(ids ? [
+      `site:shopee.com.br "${ids.itemid}"`,
+      `site:shopee.com.br "${ids.shopid}" "${ids.itemid}"`,
+    ] : []),
+    ...(detectedTitle ? [
+      `site:shopee.com.br "${detectedTitle}"`,
+      `site:shopee.com.br ${titleQuery}`,
+    ] : []),
+    ...(!ids && !detectedTitle ? [`site:shopee.com.br "${productUrl}"`] : []),
+  ]
 
   let best: any = null
   for (const q of queries) {
@@ -53,10 +88,16 @@ export default async function handler(req: any, res: any) {
     if (!rr.ok) continue
     const items = Array.isArray(data.items) ? data.items : []
     best =
-      items.find((x: any) => {
-        const hay = [x.link, x.title, x.snippet, JSON.stringify(x.pagemap || {})].join(' ')
-        return /shopee\.com\.br/i.test(String(x.link || '')) && (!ids || hay.includes(ids.itemid))
-      }) || null
+      items
+        .filter((x: any) => /shopee\.com\.br/i.test(String(x.link || '')))
+        .map((x: any) => {
+          const hay = [x.link, x.title, x.snippet, JSON.stringify(x.pagemap || {})].join(' ')
+          const itemMatch = Boolean(ids && hay.includes(ids.itemid))
+          const sim = detectedTitle ? titleSimilarity(cleanTitle(String(x.title || '')), detectedTitle) : 0
+          return { x, itemMatch, sim }
+        })
+        .filter((r: any) => r.itemMatch || r.sim >= 0.62 || (!ids && !detectedTitle))
+        .sort((a: any, b: any) => Number(b.itemMatch) - Number(a.itemMatch) || b.sim - a.sim)[0]?.x || null
     if (best) break
   }
 
@@ -77,15 +118,38 @@ export default async function handler(req: any, res: any) {
     ''
   const title = cleanTitle(String(meta['og:title'] || best.title || ''))
   const snippet = String(meta['og:description'] || best.snippet || '')
+  const offer = (pagemap.offer && pagemap.offer[0]) || (pagemap.product && pagemap.product[0]) || {}
   const priceRaw =
     meta['product:price:amount'] ||
     meta['og:price:amount'] ||
+    offer.price ||
+    offer.lowprice ||
     ''
-  const price = Number(String(priceRaw).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0
+  const metaPrice = Number(String(priceRaw).replace(/[^0-9,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')) || 0
+  const snippetPrice = priceFromText([best.snippet, meta['og:description']].join(' '))
+  const price = metaPrice || snippetPrice
+  const similarity = detectedTitle ? titleSimilarity(title, detectedTitle) : 0
+  const exactItem = Boolean(ids && [best.link, best.title, best.snippet, JSON.stringify(best.pagemap || {})].join(' ').includes(ids.itemid))
+  const highConfidence = exactItem || similarity >= 0.72
+
+  if (!highConfidence || !title || !image || price <= 0) {
+    return res.status(200).json({
+      success: false,
+      found: false,
+      partial: true,
+      title: title || '',
+      image_url: image || '',
+      price,
+      similarity,
+      exact_item: exactItem,
+      message: 'Encontrei referências ao produto, mas ainda faltam dados confiáveis para importação automática.',
+    })
+  }
 
   return res.status(200).json({
     success: true,
     found: true,
+    verified: true,
     title,
     image_url: image,
     price,
@@ -93,6 +157,7 @@ export default async function handler(req: any, res: any) {
     description: snippet,
     canonical_url: best.link || productUrl,
     source: 'google_search_fallback_exact',
-    confidence: ids ? 'exact_item_id' : 'url_match',
+    confidence: exactItem ? 'exact_item_id' : 'high_title_similarity',
+    similarity,
   })
 }
