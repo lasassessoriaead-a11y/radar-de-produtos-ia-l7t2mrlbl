@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import type { ProductRecord } from '@/types/product'
 import { aiService } from '@/services/products'
 import { ProductAnalysis360 } from './ProductAnalysis360'
+import { AudienceAcquisition360 } from './AudienceAcquisition360'
 
 interface ProductDetailModalProps {
   product: ProductRecord | null
@@ -42,7 +43,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   const navigate = useNavigate()
   const [copiedLink, setCopiedLink] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis360' | 'factors' | 'ai' | 'chat'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis360' | 'audience360' | 'factors' | 'ai' | 'chat'>('overview')
 
   // Inline mini-chat with agent for this specific product
   const [chatInput, setChatInput] = useState('')
@@ -194,7 +195,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             onValueChange={(v) => setActiveTab(v as typeof activeTab)}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-5 bg-[#0A0B10] p-1 border border-[#232738] rounded-xl mb-6">
+            <TabsList className="grid grid-cols-6 bg-[#0A0B10] p-1 border border-[#232738] rounded-xl mb-6">
               <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00F2FF] text-xs font-semibold"
@@ -206,6 +207,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00E676] text-xs font-semibold"
               >
                 🎯 Análise 360°
+              </TabsTrigger>
+              <TabsTrigger
+                value="audience360"
+                className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-emerald-400 text-xs font-semibold"
+              >
+                👥 Público
               </TabsTrigger>
               <TabsTrigger
                 value="factors"
@@ -359,7 +366,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <ProductAnalysis360 product={product} />
             </TabsContent>
 
-            {/* TAB 3: 9 FACTORS */}
+            <TabsContent value="audience360" className="space-y-4 m-0">
+              <AudienceAcquisition360 product={product} />
+            </TabsContent>
+
+            {/* TAB 4: 9 FACTORS */}
             <TabsContent value="factors" className="space-y-4 m-0">
               <FactorsBreakdown product={product} />
             </TabsContent>
