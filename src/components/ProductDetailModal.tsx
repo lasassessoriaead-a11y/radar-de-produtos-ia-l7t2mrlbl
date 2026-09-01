@@ -43,7 +43,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   const navigate = useNavigate()
   const [copiedLink, setCopiedLink] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis360' | 'audience360' | 'factors' | 'ai' | 'chat'>('overview')
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'analysis360' | 'audience360' | 'factors' | 'ai' | 'chat'
+  >('overview')
 
   // Inline mini-chat with agent for this specific product
   const [chatInput, setChatInput] = useState('')

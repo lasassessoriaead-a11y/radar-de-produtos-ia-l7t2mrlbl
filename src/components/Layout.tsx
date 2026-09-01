@@ -213,9 +213,11 @@ export default function Layout() {
           <div className="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-[#1E2232]">
             {!collapsed ? (
               <NavLink to="/" className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00F2FF] to-[#7000FF] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
-                  <Radar className="w-5 h-5 text-[#0A0B10]" />
-                </div>
+                <img
+                  src="/logo-mark.svg"
+                  alt="RADAR IA"
+                  className="w-9 h-9 flex-shrink-0 drop-shadow-[0_0_12px_rgba(0,242,255,0.4)]"
+                />
                 <div className="flex flex-col">
                   <span className="font-extrabold text-sm tracking-tight text-white flex items-center gap-1">
                     RADAR <span className="text-[#00F2FF]">IA</span>
@@ -226,10 +228,12 @@ export default function Layout() {
                 </div>
               </NavLink>
             ) : (
-              <NavLink to="/" className="mx-auto">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00F2FF] to-[#7000FF] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
-                  <Radar className="w-5 h-5 text-[#0A0B10]" />
-                </div>
+              <NavLink to="/" className="mx-auto flex items-center justify-center">
+                <img
+                  src="/logo-mark.svg"
+                  alt="RADAR IA"
+                  className="w-10 h-10 drop-shadow-[0_0_12px_rgba(0,242,255,0.4)]"
+                />
               </NavLink>
             )}
 

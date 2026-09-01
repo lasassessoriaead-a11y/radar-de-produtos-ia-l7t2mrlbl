@@ -7,7 +7,8 @@ import type {
   CampaignHookItem,
 } from '@/types/campaign'
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+const BASE_URL =
+  import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 
 export const campaignService = {
   /**
@@ -35,12 +36,16 @@ export const campaignService = {
     ai_analysis?: string
     ai_summary?: string
   }): Promise<GenerateFullCampaignResponse> {
-    const genericTitle = !productData.title?.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const genericTitle =
+      !productData.title?.trim() ||
+      /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
     const missingImage = !productData.image_url?.trim()
     const missingPrice = !((productData.price || 0) > 0 || (productData.promo_price || 0) > 0)
     const missingLink = !(productData.affiliate_url || productData.product_url)
     if (genericTitle || missingImage || missingPrice || missingLink) {
-      throw new Error('Produto não validado: confirme título, foto, preço e link antes de gerar campanha.')
+      throw new Error(
+        'Produto não validado: confirme título, foto, preço e link antes de gerar campanha.',
+      )
     }
 
     const token = pb.authStore.token

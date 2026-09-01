@@ -1,6 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+const BASE_URL =
+  import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 const STORAGE_KEY = 'radar_shopee_mode'
 
 export type ShopeeConnectionStatus = {

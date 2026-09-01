@@ -311,17 +311,25 @@ export default function CampaignLabPage() {
   }, [productId, discoveredId, editCampaignId])
 
   const isProductVerifiedForCampaign = (() => {
-    const genericTitle = !productData.title.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const genericTitle =
+      !productData.title.trim() ||
+      /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
     const missingImage = !productData.image_url?.trim()
     const missingPrice = !(productData.price > 0 || productData.promo_price > 0)
-    const missingDestination = !(affiliateInput || productData.affiliate_url || productData.product_url)
+    const missingDestination = !(
+      affiliateInput ||
+      productData.affiliate_url ||
+      productData.product_url
+    )
     return !genericTitle && !missingImage && !missingPrice && !missingDestination
   })()
 
   // 2. Generate 1-Click Complete Campaign
   const handleGenerateFullCampaign = async () => {
     if (!isProductVerifiedForCampaign) {
-      toast.error('Produto ainda não validado. Confirme título, foto, preço e link antes de gerar campanha.')
+      toast.error(
+        'Produto ainda não validado. Confirme título, foto, preço e link antes de gerar campanha.',
+      )
       return
     }
 
@@ -632,15 +640,18 @@ Pedido do Usuário: ${userText}`
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-300 mt-0.5" />
           <div>
-            <div className="text-sm font-bold text-amber-200">Produto ainda não validado para campanha</div>
+            <div className="text-sm font-bold text-amber-200">
+              Produto ainda não validado para campanha
+            </div>
             <p className="text-xs text-amber-100/80 mt-1">
-              O Radar bloqueou a criação automática porque faltam dados confiáveis do produto. Precisamos confirmar título, foto, preço e link antes de gerar criativos ou campanhas.
+              O Radar bloqueou a criação automática porque faltam dados confiáveis do produto.
+              Precisamos confirmar título, foto, preço e link antes de gerar criativos ou campanhas.
             </p>
           </div>
         </div>
       )}
 
-            {/* CARD CRM LEARNINGS (FASE 8) */}
+      {/* CARD CRM LEARNINGS (FASE 8) */}
       <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d1726] via-[#101e38] to-[#0d1726] border border-[#00F2FF]/30 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-[#00F2FF]/10 text-[#00F2FF]">
@@ -705,7 +716,10 @@ Pedido do Usuário: ${userText}`
                       size="sm"
                     />
                   ) : (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30 text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-500/10 text-amber-300 border-amber-500/30 text-[10px]"
+                    >
                       AGUARDANDO VALIDAÇÃO
                     </Badge>
                   )}
@@ -720,7 +734,9 @@ Pedido do Usuário: ${userText}`
             <div className="flex items-center gap-4 bg-[#0E1018] px-3.5 py-2 rounded-xl border border-[#202538] font-mono text-xs w-full sm:w-auto justify-between">
               <div>
                 <span className="text-[10px] text-gray-400 block">Preço no Radar</span>
-                <span className={`font-bold ${isProductVerifiedForCampaign ? 'text-white' : 'text-amber-300'}`}>
+                <span
+                  className={`font-bold ${isProductVerifiedForCampaign ? 'text-white' : 'text-amber-300'}`}
+                >
                   {isProductVerifiedForCampaign
                     ? `R$ ${(productData.promo_price || productData.price || 0).toFixed(2)}`
                     : 'Aguardando'}
@@ -730,8 +746,12 @@ Pedido do Usuário: ${userText}`
                 <span className="text-[10px] text-[#00E676] block">
                   Comissão ({productData.commission_rate}%)
                 </span>
-                <span className={`font-bold ${isProductVerifiedForCampaign ? 'text-[#00E676]' : 'text-gray-500'}`}>
-                  {isProductVerifiedForCampaign ? `+R$ ${(productData.commission_amount || 0).toFixed(2)}` : '—'}
+                <span
+                  className={`font-bold ${isProductVerifiedForCampaign ? 'text-[#00E676]' : 'text-gray-500'}`}
+                >
+                  {isProductVerifiedForCampaign
+                    ? `+R$ ${(productData.commission_amount || 0).toFixed(2)}`
+                    : '—'}
                 </span>
               </div>
             </div>

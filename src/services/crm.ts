@@ -150,14 +150,17 @@ export const crmService = {
       consent_text_version?: string
     },
   ): Promise<{ success: boolean; contact?: any; message: string }> {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/contacts/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${pb.authStore.token}`,
+    const res = await fetch(
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/contacts/save`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pb.authStore.token}`,
+        },
+        body: JSON.stringify(payload),
       },
-      body: JSON.stringify(payload),
-    })
+    )
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.message || 'Erro ao salvar contato no CRM')

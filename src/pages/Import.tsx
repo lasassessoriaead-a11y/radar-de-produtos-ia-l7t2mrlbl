@@ -185,7 +185,9 @@ export default function ImportPage() {
         const detail = [
           detected.title ? `Título detectado: ${detected.title}` : '',
           detected.price ? `Preço detectado: R$ ${Number(detected.price).toFixed(2)}` : '',
-        ].filter(Boolean).join(' • ')
+        ]
+          .filter(Boolean)
+          .join(' • ')
         toast.warning('A Shopee bloqueou parte dos dados. Ativei o modo assistido.', {
           description: detail || 'O link foi identificado, mas faltam foto e/ou preço.',
           duration: 9000,
@@ -194,7 +196,13 @@ export default function ImportPage() {
       }
       let product = data.product as ProductRecord
 
-      if ((!product.title || product.title === 'Produto Shopee' || !product.image_url || !product.price) && product.id) {
+      if (
+        (!product.title ||
+          product.title === 'Produto Shopee' ||
+          !product.image_url ||
+          !product.price) &&
+        product.id
+      ) {
         try {
           const enrichRes = await fetch('/api/product-enrich', {
             method: 'POST',
@@ -204,7 +212,8 @@ export default function ImportPage() {
           const enrich = await enrichRes.json()
           if (enrichRes.ok && enrich?.found) {
             const updates: Partial<ProductRecord> = {}
-            if (enrich.title && (!product.title || product.title === 'Produto Shopee')) updates.title = enrich.title
+            if (enrich.title && (!product.title || product.title === 'Produto Shopee'))
+              updates.title = enrich.title
             if (enrich.image_url && !product.image_url) updates.image_url = enrich.image_url
             if (enrich.price && !product.price) {
               updates.price = enrich.price
@@ -220,7 +229,11 @@ export default function ImportPage() {
         }
       }
 
-      if (Array.isArray(data.warnings) && data.warnings.length && (!product.image_url || !product.price)) {
+      if (
+        Array.isArray(data.warnings) &&
+        data.warnings.length &&
+        (!product.image_url || !product.price)
+      ) {
         toast.warning(data.warnings.join(' '))
       } else {
         toast.success('Produto importado automaticamente.')
@@ -287,7 +300,7 @@ export default function ImportPage() {
     }
   }
 
-    // Handle Manual Form Submit
+  // Handle Manual Form Submit
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualForm.title.trim()) {
@@ -542,7 +555,8 @@ export default function ImportPage() {
           Importar Produtos para o Radar
         </h1>
         <p className="text-xs md:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
-          Conecte a Shopee em modo manual e importe produtos por link. O Radar salva o marketplace, traz o produto para o catálogo e prepara análise, campanha e tracking.
+          Conecte a Shopee em modo manual e importe produtos por link. O Radar salva o marketplace,
+          traz o produto para o catálogo e prepara análise, campanha e tracking.
         </p>
       </div>
 
@@ -575,13 +589,19 @@ export default function ImportPage() {
           <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">Shopee — Conectar e importar por link</h3>
-                <span className={`text-[10px] px-2 py-0.5 rounded border ${shopeeConnected ? 'bg-[#00E676]/10 text-[#00E676] border-[#00E676]/30' : 'bg-[#EE4D2D]/10 text-[#FF765B] border-[#EE4D2D]/30'}`}>
+                <h3 className="text-sm font-bold text-white">
+                  Shopee — Conectar e importar por link
+                </h3>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded border ${shopeeConnected ? 'bg-[#00E676]/10 text-[#00E676] border-[#00E676]/30' : 'bg-[#EE4D2D]/10 text-[#FF765B] border-[#EE4D2D]/30'}`}
+                >
                   {shopeeConnected ? 'CONECTADA' : 'MODO MANUAL'}
                 </span>
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Cole um link normal ou um link curto de afiliado da Shopee. O Radar ativa a Shopee Manual, tenta capturar os dados do produto, salva no catálogo e abre o Laboratório de Campanhas.
+                Cole um link normal ou um link curto de afiliado da Shopee. O Radar ativa a Shopee
+                Manual, tenta capturar os dados do produto, salva no catálogo e abre o Laboratório
+                de Campanhas.
               </p>
             </div>
             <div className="flex flex-col md:flex-row gap-3">
@@ -601,7 +621,9 @@ export default function ImportPage() {
               </Button>
             </div>
             <div className="text-[11px] text-gray-500">
-              Links curtos s.shopee.com.br são preservados como link de afiliado quando possível. Se a Shopee limitar metadados, o Radar mantém o produto e pede somente os campos que faltarem.
+              Links curtos s.shopee.com.br são preservados como link de afiliado quando possível. Se
+              a Shopee limitar metadados, o Radar mantém o produto e pede somente os campos que
+              faltarem.
             </div>
           </div>
 
@@ -609,15 +631,20 @@ export default function ImportPage() {
             <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-bold text-amber-200">Produto identificado — faltam dados que a Shopee bloqueou</h3>
+                  <h3 className="text-sm font-bold text-amber-200">
+                    Produto identificado — faltam dados que a Shopee bloqueou
+                  </h3>
                   <p className="text-xs text-amber-100/70 mt-1">
-                    Não vou inventar imagem ou preço. O link e o produto foram identificados; confirme somente os campos abaixo.
+                    Não vou inventar imagem ou preço. O link e o produto foram identificados;
+                    confirme somente os campos abaixo.
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => window.open(pendingShopee.affiliate_url, '_blank', 'noopener,noreferrer')}
+                  onClick={() =>
+                    window.open(pendingShopee.affiliate_url, '_blank', 'noopener,noreferrer')
+                  }
                   className="border-amber-500/30 text-amber-200"
                 >
                   Abrir produto na Shopee
@@ -644,10 +671,14 @@ export default function ImportPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-300">URL da foto real do produto</label>
+                  <label className="text-xs font-semibold text-gray-300">
+                    URL da foto real do produto
+                  </label>
                   <input
                     value={pendingShopee.image_url}
-                    onChange={(e) => setPendingShopee({ ...pendingShopee, image_url: e.target.value })}
+                    onChange={(e) =>
+                      setPendingShopee({ ...pendingShopee, image_url: e.target.value })
+                    }
                     placeholder="Cole o endereço da imagem da própria Shopee"
                     className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
                   />

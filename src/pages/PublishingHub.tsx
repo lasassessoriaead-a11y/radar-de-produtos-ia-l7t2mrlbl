@@ -704,7 +704,8 @@ export default function PublishingHub() {
                 if (campaigns.length === 0) {
                   toast({
                     title: 'Primeiro crie uma campanha',
-                    description: 'Você ainda não tem campanhas disponíveis. Vou abrir o Laboratório de Campanhas para criar a primeira.',
+                    description:
+                      'Você ainda não tem campanhas disponíveis. Vou abrir o Laboratório de Campanhas para criar a primeira.',
                   })
                   window.location.href = '/laboratorio'
                   return

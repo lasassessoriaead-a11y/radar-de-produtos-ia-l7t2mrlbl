@@ -100,18 +100,21 @@ export const aiService = {
     productId?: string,
     conversationId?: string | null,
   ): Promise<{ answer: string; conversation_id: string }> {
-    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ask-analyst`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+    const res = await fetch(
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ask-analyst`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: pb.authStore.token,
+        },
+        body: JSON.stringify({
+          question,
+          product_id: productId,
+          conversation_id: conversationId,
+        }),
       },
-      body: JSON.stringify({
-        question,
-        product_id: productId,
-        conversation_id: conversationId,
-      }),
-    })
+    )
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))

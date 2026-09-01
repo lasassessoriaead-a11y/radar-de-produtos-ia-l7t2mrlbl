@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Background Gradient (Diagonal Cyan #00F2FF to Purple #7000FF) -->
+    <linearGradient id="radar-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FF" />
+      <stop offset="100%" stop-color="#7000FF" />
+    </linearGradient>
+
+    <!-- Cyan Glow Shadow Filter -->
+    <filter id="cyan-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#00F2FF" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Rounded Box with Gradient and Glow -->
+  <rect
+    x="6"
+    y="6"
+    width="88"
+    height="88"
+    rx="22"
+    fill="url(#radar-gradient)"
+    filter="url(#cyan-glow)"
+  />
+
+  <!-- Radar Icon (Lucide Radar geometry faithfully reproduced in #0A0B10) -->
+  <!-- Scaled and centered: 24x24 lucide icon mapped to 54x54 within 100x100 (offset x=23, y=23, scale=2.25) -->
+  <g transform="translate(23, 23) scale(2.25)" stroke="#0A0B10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Outer arc -->
+    <path d="M19.07 4.93A10 10 0 0 0 4.93 19.07" />
+    <!-- Middle arc -->
+    <path d="M16.24 7.76A6 6 0 0 0 7.76 16.24" />
+    <!-- Inner arc -->
+    <path d="M13.41 10.59A2 2 0 0 0 10.59 13.41" />
+    <!-- Radar beam / pointer -->
+    <path d="M12 12l7-7" />
+  </g>
+</svg>

@@ -54,12 +54,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, name?: string) => {
     setIsLoading(true)
     try {
-      const result = await pb.auth.signUp(email, password, name)
-      if (!result?.access_token) {
-        throw new Error(
-          'Conta criada. Confirme o e-mail se o Supabase solicitar e depois faça login.',
-        )
-      }
+      await pb.collection('users').create({
+        email,
+        password,
+        passwordConfirm: password,
+        name: name || email.split('@')[0],
+      })
+      await pb.collection('users').authWithPassword(email, password)
       setUser(pb.authStore.record as AuthUser | null)
       setToken(pb.authStore.token || null)
     } finally {

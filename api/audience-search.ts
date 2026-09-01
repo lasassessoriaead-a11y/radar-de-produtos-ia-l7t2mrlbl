@@ -27,13 +27,14 @@ export default async function handler(req: any, res: any) {
       status: 'credentials_required',
       status_label: 'Credenciais ausentes',
       is_connected: false,
-      message: 'GOOGLE_SEARCH_API_KEY e GOOGLE_SEARCH_CX ainda não estão disponíveis no ambiente da Vercel.',
+      message:
+        'GOOGLE_SEARCH_API_KEY e GOOGLE_SEARCH_CX ainda não estão disponíveis no ambiente da Vercel.',
       total_found: 0,
       signals: [],
     })
   }
 
-  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {}
   const query = String(body.query || body.product_title || body.category || '').trim()
   const limit = Math.max(1, Math.min(20, Number(body.limit || 10)))
   if (!query) return res.status(400).json({ error: 'Informe um termo ou produto para pesquisar.' })
@@ -73,7 +74,9 @@ export default async function handler(req: any, res: any) {
 
     for (const item of data.items || []) {
       let community = ''
-      try { community = new URL(item.link).hostname } catch {}
+      try {
+        community = new URL(item.link).hostname
+      } catch {}
       collected.push({
         external_id: String(item.cacheId || item.link || crypto.randomUUID()),
         title: String(item.title || ''),
@@ -90,12 +93,14 @@ export default async function handler(req: any, res: any) {
   }
 
   const seen = new Set<string>()
-  const signals = collected.filter((x) => {
-    const k = x.source_url || x.title
-    if (seen.has(k)) return false
-    seen.add(k)
-    return true
-  }).slice(0, limit)
+  const signals = collected
+    .filter((x) => {
+      const k = x.source_url || x.title
+      if (seen.has(k)) return false
+      seen.add(k)
+      return true
+    })
+    .slice(0, limit)
 
   return res.status(200).json({
     provider: 'google_search',
