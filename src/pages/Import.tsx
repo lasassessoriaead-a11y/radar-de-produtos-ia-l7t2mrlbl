@@ -54,6 +54,15 @@ export default function ImportPage() {
   const [quickUrl, setQuickUrl] = useState('')
   const [quickLoading, setQuickLoading] = useState(false)
   const [shopeeConnected, setShopeeConnected] = useState(false)
+  const [pendingShopee, setPendingShopee] = useState<null | {
+    title: string
+    resolved_url: string
+    affiliate_url: string
+    image_url: string
+    price: string
+    shopee_ids?: { shopid?: string; itemid?: string } | null
+  }>(null)
+  const [pendingSaving, setPendingSaving] = useState(false)
 
   // CSV State
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -164,12 +173,21 @@ export default function ImportPage() {
           console.warn('Secondary Shopee enrichment unavailable:', enrichErr)
         }
 
+        setPendingShopee({
+          title: detected.title || '',
+          resolved_url: data.resolved_url || url,
+          affiliate_url: url,
+          image_url: detected.image_url || '',
+          price: detected.price ? String(detected.price) : '',
+          shopee_ids: data.shopee_ids || null,
+        })
+
         const detail = [
           detected.title ? `Título detectado: ${detected.title}` : '',
           detected.price ? `Preço detectado: R$ ${Number(detected.price).toFixed(2)}` : '',
         ].filter(Boolean).join(' • ')
-        toast.warning(data.message || 'Produto não pôde ser validado automaticamente.', {
-          description: detail || 'Nada foi salvo para evitar foto, preço ou produto incorreto.',
+        toast.warning('A Shopee bloqueou parte dos dados. Ativei o modo assistido.', {
+          description: detail || 'O link foi identificado, mas faltam foto e/ou preço.',
           duration: 9000,
         })
         return
@@ -215,7 +233,61 @@ export default function ImportPage() {
     }
   }
 
-  // Handle Manual Form Submit
+  const handleSavePendingShopee = async () => {
+    if (!pendingShopee) return
+    const title = pendingShopee.title.trim()
+    const image = pendingShopee.image_url.trim()
+    const price = Number(pendingShopee.price.replace(',', '.')) || 0
+
+    if (!title || !image || price <= 0) {
+      toast.error('Confirme título, URL da foto e preço para validar este produto.')
+      return
+    }
+
+    setPendingSaving(true)
+    try {
+      const product = await productsService.createProduct({
+        title,
+        image_url: image,
+        platform: 'Shopee',
+        category: 'Geral',
+        niche: '',
+        price,
+        promo_price: price,
+        commission_rate: 0,
+        commission_amount: 0,
+        sales_count: 0,
+        reviews_count: 0,
+        rating: 0,
+        seller: '',
+        product_url: pendingShopee.resolved_url,
+        affiliate_url: pendingShopee.affiliate_url,
+        competition_level: 5,
+        trends_score: 0,
+        demand_score: 0,
+        opportunity_score: 0,
+        opportunity_level: 'test',
+        source: 'shopee_assisted_verified',
+        metadata: {
+          imported_at: new Date().toISOString(),
+          source_url: pendingShopee.affiliate_url,
+          resolved_url: pendingShopee.resolved_url,
+          shopee_ids: pendingShopee.shopee_ids || null,
+          verified: true,
+          verification_mode: 'assisted',
+        },
+      })
+      toast.success('Produto validado e salvo sem dados inventados.')
+      setPendingShopee(null)
+      navigate(`/laboratorio?productId=${product.id}`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Não foi possível salvar o produto validado.')
+    } finally {
+      setPendingSaving(false)
+    }
+  }
+
+    // Handle Manual Form Submit
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualForm.title.trim()) {
@@ -532,6 +604,68 @@ export default function ImportPage() {
               Links curtos s.shopee.com.br são preservados como link de afiliado quando possível. Se a Shopee limitar metadados, o Radar mantém o produto e pede somente os campos que faltarem.
             </div>
           </div>
+
+          {pendingShopee && (
+            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-amber-200">Produto identificado — faltam dados que a Shopee bloqueou</h3>
+                  <p className="text-xs text-amber-100/70 mt-1">
+                    Não vou inventar imagem ou preço. O link e o produto foram identificados; confirme somente os campos abaixo.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(pendingShopee.affiliate_url, '_blank', 'noopener,noreferrer')}
+                  className="border-amber-500/30 text-amber-200"
+                >
+                  Abrir produto na Shopee
+                </Button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-300">Título detectado</label>
+                <input
+                  value={pendingShopee.title}
+                  onChange={(e) => setPendingShopee({ ...pendingShopee, title: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Preço atual (R$)</label>
+                  <input
+                    value={pendingShopee.price}
+                    onChange={(e) => setPendingShopee({ ...pendingShopee, price: e.target.value })}
+                    placeholder="Ex: 49,90"
+                    className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-300">URL da foto real do produto</label>
+                  <input
+                    value={pendingShopee.image_url}
+                    onChange={(e) => setPendingShopee({ ...pendingShopee, image_url: e.target.value })}
+                    placeholder="Cole o endereço da imagem da própria Shopee"
+                    className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleSavePendingShopee}
+                  disabled={pendingSaving}
+                  className="bg-amber-400 hover:bg-amber-300 text-black font-bold"
+                >
+                  {pendingSaving ? 'Salvando...' : 'Confirmar e salvar produto'}
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* TAB 1: MANUAL ENTRY */}
