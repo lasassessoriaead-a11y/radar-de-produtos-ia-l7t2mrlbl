@@ -99,8 +99,35 @@ export default function ImportPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Não foi possível importar o produto.')
-      const product = data.product as ProductRecord
-      if (Array.isArray(data.warnings) && data.warnings.length) {
+      let product = data.product as ProductRecord
+
+      if ((!product.title || product.title === 'Produto Shopee' || !product.image_url || !product.price) && product.id) {
+        try {
+          const enrichRes = await fetch('/api/product-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_url: product.product_url || url }),
+          })
+          const enrich = await enrichRes.json()
+          if (enrichRes.ok && enrich?.found) {
+            const updates: Partial<ProductRecord> = {}
+            if (enrich.title && (!product.title || product.title === 'Produto Shopee')) updates.title = enrich.title
+            if (enrich.image_url && !product.image_url) updates.image_url = enrich.image_url
+            if (enrich.price && !product.price) {
+              updates.price = enrich.price
+              updates.promo_price = enrich.promo_price || enrich.price
+            }
+            if (Object.keys(updates).length) {
+              product = await productsService.updateProduct(product.id, updates)
+              toast.success('Produto enriquecido automaticamente com dados públicos.')
+            }
+          }
+        } catch (enrichErr) {
+          console.warn('Shopee enrichment fallback unavailable:', enrichErr)
+        }
+      }
+
+      if (Array.isArray(data.warnings) && data.warnings.length && (!product.image_url || !product.price)) {
         toast.warning(data.warnings.join(' '))
       } else {
         toast.success('Produto importado automaticamente.')
