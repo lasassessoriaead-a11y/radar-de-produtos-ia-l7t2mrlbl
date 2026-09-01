@@ -310,10 +310,18 @@ export default function CampaignLabPage() {
     loadInitialProduct()
   }, [productId, discoveredId, editCampaignId])
 
+  const isProductVerifiedForCampaign = (() => {
+    const genericTitle = !productData.title.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const missingImage = !productData.image_url?.trim()
+    const missingPrice = !(productData.price > 0 || productData.promo_price > 0)
+    const missingDestination = !(affiliateInput || productData.affiliate_url || productData.product_url)
+    return !genericTitle && !missingImage && !missingPrice && !missingDestination
+  })()
+
   // 2. Generate 1-Click Complete Campaign
   const handleGenerateFullCampaign = async () => {
-    if (!productData.title.trim()) {
-      toast.error('Informe o título do produto para iniciar a criação da campanha')
+    if (!isProductVerifiedForCampaign) {
+      toast.error('Produto ainda não validado. Confirme título, foto, preço e link antes de gerar campanha.')
       return
     }
 
@@ -578,7 +586,7 @@ Pedido do Usuário: ${userText}`
           <Button
             size="sm"
             onClick={handleGenerateFullCampaign}
-            disabled={isGenerating || !productData.title}
+            disabled={isGenerating || !isProductVerifiedForCampaign}
             className="h-9 px-4 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-black text-xs gap-1.5 shadow-[0_0_20px_rgba(0,242,255,0.3)]"
           >
             <Sparkles className={cn('w-3.5 h-3.5', isGenerating && 'animate-spin')} />
@@ -620,7 +628,19 @@ Pedido do Usuário: ${userText}`
         </div>
       </div>
 
-      {/* CARD CRM LEARNINGS (FASE 8) */}
+      {!isProductVerifiedForCampaign && productData.id && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-300 mt-0.5" />
+          <div>
+            <div className="text-sm font-bold text-amber-200">Produto ainda não validado para campanha</div>
+            <p className="text-xs text-amber-100/80 mt-1">
+              O Radar bloqueou a criação automática porque faltam dados confiáveis do produto. Precisamos confirmar título, foto, preço e link antes de gerar criativos ou campanhas.
+            </p>
+          </div>
+        </div>
+      )}
+
+            {/* CARD CRM LEARNINGS (FASE 8) */}
       <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d1726] via-[#101e38] to-[#0d1726] border border-[#00F2FF]/30 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-[#00F2FF]/10 text-[#00F2FF]">
