@@ -35,6 +35,14 @@ export const campaignService = {
     ai_analysis?: string
     ai_summary?: string
   }): Promise<GenerateFullCampaignResponse> {
+    const genericTitle = !productData.title?.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const missingImage = !productData.image_url?.trim()
+    const missingPrice = !((productData.price || 0) > 0 || (productData.promo_price || 0) > 0)
+    const missingLink = !(productData.affiliate_url || productData.product_url)
+    if (genericTitle || missingImage || missingPrice || missingLink) {
+      throw new Error('Produto não validado: confirme título, foto, preço e link antes de gerar campanha.')
+    }
+
     const token = pb.authStore.token
     const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/campaign-generate`
     const res = await fetch(endpoint, {
