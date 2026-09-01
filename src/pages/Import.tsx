@@ -99,6 +99,18 @@ export default function ImportPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Não foi possível importar o produto.')
+      if (!data.success || !data.product) {
+        const detected = data.detected || {}
+        const detail = [
+          detected.title ? `Título detectado: ${detected.title}` : '',
+          detected.price ? `Preço detectado: R$ ${Number(detected.price).toFixed(2)}` : '',
+        ].filter(Boolean).join(' • ')
+        toast.warning(data.message || 'Produto não pôde ser validado automaticamente.', {
+          description: detail || 'Nada foi salvo para evitar foto, preço ou produto incorreto.',
+          duration: 9000,
+        })
+        return
+      }
       let product = data.product as ProductRecord
 
       if ((!product.title || product.title === 'Produto Shopee' || !product.image_url || !product.price) && product.id) {
