@@ -14,7 +14,7 @@ export const crmService = {
   async getDashboardAnalytics(): Promise<CRMDashboardResponse> {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/crm/analytics/dashboard`,
+        `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/analytics/dashboard`,
         {
           headers: {
             Authorization: `Bearer ${pb.authStore.token}`,
@@ -150,7 +150,7 @@ export const crmService = {
       consent_text_version?: string
     },
   ): Promise<{ success: boolean; contact?: any; message: string }> {
-    const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/crm/contacts/save`, {
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/contacts/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export const crmService = {
     campaign_id?: string
   }): Promise<any> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/crm/contacts/attribute-conversion`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/contacts/attribute-conversion`,
       {
         method: 'POST',
         headers: {
@@ -208,7 +208,7 @@ export const crmService = {
   // 7. Generate AI / Rule-Based Recommendations for Contact
   async generateRecommendations(contactId: string): Promise<GenerateRecommendationsResponse> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/crm/recommendations/generate`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/recommendations/generate`,
       {
         method: 'POST',
         headers: {
@@ -254,7 +254,7 @@ export const crmService = {
     notes?: string
   }): Promise<any> {
     const res = await fetch(
-      `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/crm/consents/action`,
+      `${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/crm/consents/action`,
       {
         method: 'POST',
         headers: {

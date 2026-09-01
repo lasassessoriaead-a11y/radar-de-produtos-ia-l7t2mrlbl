@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/t/:slug",
+      "destination": "https://nqepcuktmbnjecjlemmh.supabase.co/functions/v1/radar-api/t/:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

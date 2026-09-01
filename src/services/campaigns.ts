@@ -7,7 +7,7 @@ import type {
   CampaignHookItem,
 } from '@/types/campaign'
 
-const BASE_URL = import.meta.env.VITE_POCKETBASE_URL || ''
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 
 export const campaignService = {
   /**
@@ -35,12 +35,21 @@ export const campaignService = {
     ai_analysis?: string
     ai_summary?: string
   }): Promise<GenerateFullCampaignResponse> {
+    const genericTitle = !productData.title?.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const missingImage = !productData.image_url?.trim()
+    const missingPrice = !((productData.price || 0) > 0 || (productData.promo_price || 0) > 0)
+    const missingLink = !(productData.affiliate_url || productData.product_url)
+    if (genericTitle || missingImage || missingPrice || missingLink) {
+      throw new Error('Produto não validado: confirme título, foto, preço e link antes de gerar campanha.')
+    }
+
     const token = pb.authStore.token
-    const res = await fetch(`${BASE_URL}/backend/v1/campaigns/generate-full`, {
+    const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/campaign-generate`
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: token } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(productData),
     })
@@ -167,22 +176,41 @@ export const campaignService = {
     campaign_id: string
     message: string
   }> {
-    const token = pb.authStore.token
-    const res = await fetch(`${BASE_URL}/backend/v1/campaigns/save`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: token } : {}),
-      },
-      body: JSON.stringify(campaignData),
-    })
+    const variations = campaignData.variations || []
+    const campaignPayload = { ...campaignData } as Record<string, any>
+    delete campaignPayload.variations
+    delete campaignPayload.id
+    delete campaignPayload.created
+    delete campaignPayload.updated
+    delete campaignPayload.collectionId
+    delete campaignPayload.collectionName
 
-    const payload = await res.json()
-    if (!res.ok) {
-      throw new Error(payload?.error || 'Erro ao salvar campanha')
+    const existingId = campaignData.id
+    const campaign = existingId
+      ? await pb.collection('campaigns').update<CampaignRecord>(existingId, campaignPayload)
+      : await pb.collection('campaigns').create<CampaignRecord>(campaignPayload)
+
+    if (variations.length > 0) {
+      const current = await pb.collection('campaign_variations').getFullList<CampaignVariation>({
+        filter: `campaign_id = "${campaign.id}"`,
+      })
+      for (const old of current) {
+        if (old.id) await pb.collection('campaign_variations').delete(old.id)
+      }
+      for (const variation of variations) {
+        const payload = { ...variation, campaign_id: campaign.id } as Record<string, any>
+        delete payload.id
+        delete payload.created
+        delete payload.updated
+        await pb.collection('campaign_variations').create(payload)
+      }
     }
 
-    return payload
+    return {
+      success: true,
+      campaign_id: campaign.id,
+      message: existingId ? 'Campanha atualizada com sucesso' : 'Campanha salva com sucesso',
+    }
   },
 
   /**

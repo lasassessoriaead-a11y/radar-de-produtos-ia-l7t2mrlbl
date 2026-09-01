@@ -17,8 +17,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { productsService } from '@/services/products'
+import pb from '@/lib/pocketbase/client'
 import type { ProductRecord } from '@/types/product'
 import { toast } from 'sonner'
+import { shopeeService } from '@/services/shopee'
 
 interface CsvRow {
   [key: string]: string
@@ -49,6 +51,18 @@ export default function ImportPage() {
     demand_score: '8',
   })
   const [manualLoading, setManualLoading] = useState(false)
+  const [quickUrl, setQuickUrl] = useState('')
+  const [quickLoading, setQuickLoading] = useState(false)
+  const [shopeeConnected, setShopeeConnected] = useState(false)
+  const [pendingShopee, setPendingShopee] = useState<null | {
+    title: string
+    resolved_url: string
+    affiliate_url: string
+    image_url: string
+    price: string
+    shopee_ids?: { shopid?: string; itemid?: string } | null
+  }>(null)
+  const [pendingSaving, setPendingSaving] = useState(false)
 
   // CSV State
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -73,7 +87,207 @@ export default function ImportPage() {
   const [csvStep, setCsvStep] = useState<'upload' | 'mapping' | 'preview'>('upload')
   const [csvImporting, setCsvImporting] = useState(false)
 
-  // Handle Manual Form Submit
+  const handleQuickImport = async () => {
+    const url = quickUrl.trim()
+    if (!url) {
+      toast.error('Cole o link do produto da Shopee.')
+      return
+    }
+    setQuickLoading(true)
+    try {
+      await shopeeService.setMode('manual')
+      setShopeeConnected(true)
+      const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/product-import`
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pb.authStore.token}`,
+        },
+        body: JSON.stringify({ url }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Não foi possível importar o produto.')
+      if (!data.success || !data.product) {
+        const detected = data.detected || {}
+
+        try {
+          const enrichRes = await fetch('/api/product-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_url: data.resolved_url || url,
+              detected_title: detected.title || '',
+              shopee_ids: data.shopee_ids || null,
+            }),
+          })
+          const enrich = await enrichRes.json()
+
+          if (
+            enrichRes.ok &&
+            enrich?.found &&
+            enrich?.verified &&
+            enrich?.title &&
+            enrich?.image_url &&
+            Number(enrich?.price) > 0
+          ) {
+            const product = await productsService.createProduct({
+              title: enrich.title,
+              image_url: enrich.image_url,
+              platform: 'Shopee',
+              category: 'Geral',
+              niche: '',
+              price: Number(enrich.price),
+              promo_price: Number(enrich.promo_price || enrich.price),
+              commission_rate: 0,
+              commission_amount: 0,
+              sales_count: 0,
+              reviews_count: 0,
+              rating: 0,
+              seller: '',
+              product_url: enrich.canonical_url || data.resolved_url || url,
+              affiliate_url: url,
+              competition_level: 5,
+              trends_score: 0,
+              demand_score: 0,
+              opportunity_score: 0,
+              opportunity_level: 'test',
+              source: 'google_verified_fallback',
+              metadata: {
+                imported_at: new Date().toISOString(),
+                source_url: url,
+                resolved_url: data.resolved_url || null,
+                shopee_ids: data.shopee_ids || null,
+                enrichment_source: enrich.source,
+                enrichment_confidence: enrich.confidence,
+                title_similarity: enrich.similarity,
+                verified: true,
+              },
+            })
+
+            toast.success('Produto validado por fonte secundária e importado com sucesso.')
+            navigate(`/laboratorio?productId=${product.id}`)
+            return
+          }
+        } catch (enrichErr) {
+          console.warn('Secondary Shopee enrichment unavailable:', enrichErr)
+        }
+
+        setPendingShopee({
+          title: detected.title || '',
+          resolved_url: data.resolved_url || url,
+          affiliate_url: url,
+          image_url: detected.image_url || '',
+          price: detected.price ? String(detected.price) : '',
+          shopee_ids: data.shopee_ids || null,
+        })
+
+        const detail = [
+          detected.title ? `Título detectado: ${detected.title}` : '',
+          detected.price ? `Preço detectado: R$ ${Number(detected.price).toFixed(2)}` : '',
+        ].filter(Boolean).join(' • ')
+        toast.warning('A Shopee bloqueou parte dos dados. Ativei o modo assistido.', {
+          description: detail || 'O link foi identificado, mas faltam foto e/ou preço.',
+          duration: 9000,
+        })
+        return
+      }
+      let product = data.product as ProductRecord
+
+      if ((!product.title || product.title === 'Produto Shopee' || !product.image_url || !product.price) && product.id) {
+        try {
+          const enrichRes = await fetch('/api/product-enrich', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ product_url: product.product_url || url }),
+          })
+          const enrich = await enrichRes.json()
+          if (enrichRes.ok && enrich?.found) {
+            const updates: Partial<ProductRecord> = {}
+            if (enrich.title && (!product.title || product.title === 'Produto Shopee')) updates.title = enrich.title
+            if (enrich.image_url && !product.image_url) updates.image_url = enrich.image_url
+            if (enrich.price && !product.price) {
+              updates.price = enrich.price
+              updates.promo_price = enrich.promo_price || enrich.price
+            }
+            if (Object.keys(updates).length) {
+              product = await productsService.updateProduct(product.id, updates)
+              toast.success('Produto enriquecido automaticamente com dados públicos.')
+            }
+          }
+        } catch (enrichErr) {
+          console.warn('Shopee enrichment fallback unavailable:', enrichErr)
+        }
+      }
+
+      if (Array.isArray(data.warnings) && data.warnings.length && (!product.image_url || !product.price)) {
+        toast.warning(data.warnings.join(' '))
+      } else {
+        toast.success('Produto importado automaticamente.')
+      }
+      navigate(`/laboratorio?productId=${product.id}`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao importar o link.')
+    } finally {
+      setQuickLoading(false)
+    }
+  }
+
+  const handleSavePendingShopee = async () => {
+    if (!pendingShopee) return
+    const title = pendingShopee.title.trim()
+    const image = pendingShopee.image_url.trim()
+    const price = Number(pendingShopee.price.replace(',', '.')) || 0
+
+    if (!title || !image || price <= 0) {
+      toast.error('Confirme título, URL da foto e preço para validar este produto.')
+      return
+    }
+
+    setPendingSaving(true)
+    try {
+      const product = await productsService.createProduct({
+        title,
+        image_url: image,
+        platform: 'Shopee',
+        category: 'Geral',
+        niche: '',
+        price,
+        promo_price: price,
+        commission_rate: 0,
+        commission_amount: 0,
+        sales_count: 0,
+        reviews_count: 0,
+        rating: 0,
+        seller: '',
+        product_url: pendingShopee.resolved_url,
+        affiliate_url: pendingShopee.affiliate_url,
+        competition_level: 5,
+        trends_score: 0,
+        demand_score: 0,
+        opportunity_score: 0,
+        opportunity_level: 'test',
+        source: 'shopee_assisted_verified',
+        metadata: {
+          imported_at: new Date().toISOString(),
+          source_url: pendingShopee.affiliate_url,
+          resolved_url: pendingShopee.resolved_url,
+          shopee_ids: pendingShopee.shopee_ids || null,
+          verified: true,
+          verification_mode: 'assisted',
+        },
+      })
+      toast.success('Produto validado e salvo sem dados inventados.')
+      setPendingShopee(null)
+      navigate(`/laboratorio?productId=${product.id}`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Não foi possível salvar o produto validado.')
+    } finally {
+      setPendingSaving(false)
+    }
+  }
+
+    // Handle Manual Form Submit
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!manualForm.title.trim()) {
@@ -319,23 +533,28 @@ export default function ImportPage() {
       <div className="pb-4 border-b border-[#1E2232]">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 font-bold">
-            Entrada de Dados
+            Fontes de Produtos
           </span>
-          <span className="text-xs text-gray-400 font-mono">Manual + CSV com Mapeamento</span>
+          <span className="text-xs text-gray-400 font-mono">Shopee Manual + Link + CSV</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
           <UploadCloud className="w-7 h-7 text-[#00F2FF]" />
           Importar Produtos para o Radar
         </h1>
         <p className="text-xs md:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
-          Cadastre produtos individualmente ou importe lotes em massa via CSV. O backend calcula
-          instantaneamente o Score de Oportunidade e aciona o Analista IA para preencher o raio-x de
-          conversão.
+          Conecte a Shopee em modo manual e importe produtos por link. O Radar salva o marketplace, traz o produto para o catálogo e prepara análise, campanha e tracking.
         </p>
       </div>
 
-      <Tabs defaultValue="manual" className="w-full">
-        <TabsList className="grid grid-cols-2 bg-[#12141F] p-1 border border-[#232738] rounded-2xl mb-6">
+      <Tabs defaultValue="link" className="w-full">
+        <TabsList className="grid grid-cols-3 bg-[#12141F] p-1 border border-[#232738] rounded-2xl mb-6">
+          <TabsTrigger
+            value="link"
+            className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00F2FF] text-xs font-bold py-2.5 rounded-xl gap-2"
+          >
+            <ArrowRight className="w-4 h-4" />
+            Importar por Link
+          </TabsTrigger>
           <TabsTrigger
             value="manual"
             className="data-[state=active]:bg-[#1A1D2B] data-[state=active]:text-[#00F2FF] text-xs font-bold py-2.5 rounded-xl gap-2"
@@ -351,6 +570,103 @@ export default function ImportPage() {
             Importação em Massa (CSV)
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="link" className="m-0 space-y-6">
+          <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Shopee — Conectar e importar por link</h3>
+                <span className={`text-[10px] px-2 py-0.5 rounded border ${shopeeConnected ? 'bg-[#00E676]/10 text-[#00E676] border-[#00E676]/30' : 'bg-[#EE4D2D]/10 text-[#FF765B] border-[#EE4D2D]/30'}`}>
+                  {shopeeConnected ? 'CONECTADA' : 'MODO MANUAL'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Cole um link normal ou um link curto de afiliado da Shopee. O Radar ativa a Shopee Manual, tenta capturar os dados do produto, salva no catálogo e abre o Laboratório de Campanhas.
+              </p>
+            </div>
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                value={quickUrl}
+                onChange={(e) => setQuickUrl(e.target.value)}
+                placeholder="https://shopee.com.br/... ou https://s.shopee.com.br/..."
+                className="flex-1 h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#00F2FF]"
+              />
+              <Button
+                type="button"
+                onClick={handleQuickImport}
+                disabled={quickLoading}
+                className="h-11 px-5 bg-gradient-to-r from-[#00F2FF] to-[#7000FF] text-[#0A0B10] font-bold"
+              >
+                {quickLoading ? 'Conectando & importando...' : 'Conectar Shopee e importar'}
+              </Button>
+            </div>
+            <div className="text-[11px] text-gray-500">
+              Links curtos s.shopee.com.br são preservados como link de afiliado quando possível. Se a Shopee limitar metadados, o Radar mantém o produto e pede somente os campos que faltarem.
+            </div>
+          </div>
+
+          {pendingShopee && (
+            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-bold text-amber-200">Produto identificado — faltam dados que a Shopee bloqueou</h3>
+                  <p className="text-xs text-amber-100/70 mt-1">
+                    Não vou inventar imagem ou preço. O link e o produto foram identificados; confirme somente os campos abaixo.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.open(pendingShopee.affiliate_url, '_blank', 'noopener,noreferrer')}
+                  className="border-amber-500/30 text-amber-200"
+                >
+                  Abrir produto na Shopee
+                </Button>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-300">Título detectado</label>
+                <input
+                  value={pendingShopee.title}
+                  onChange={(e) => setPendingShopee({ ...pendingShopee, title: e.target.value })}
+                  className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Preço atual (R$)</label>
+                  <input
+                    value={pendingShopee.price}
+                    onChange={(e) => setPendingShopee({ ...pendingShopee, price: e.target.value })}
+                    placeholder="Ex: 49,90"
+                    className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-300">URL da foto real do produto</label>
+                  <input
+                    value={pendingShopee.image_url}
+                    onChange={(e) => setPendingShopee({ ...pendingShopee, image_url: e.target.value })}
+                    placeholder="Cole o endereço da imagem da própria Shopee"
+                    className="w-full h-11 px-4 rounded-xl bg-[#0D0F18] border border-[#2A2F45] text-xs text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleSavePendingShopee}
+                  disabled={pendingSaving}
+                  className="bg-amber-400 hover:bg-amber-300 text-black font-bold"
+                >
+                  {pendingSaving ? 'Salvando...' : 'Confirmar e salvar produto'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
 
         {/* TAB 1: MANUAL ENTRY */}
         <TabsContent value="manual" className="m-0 space-y-6">

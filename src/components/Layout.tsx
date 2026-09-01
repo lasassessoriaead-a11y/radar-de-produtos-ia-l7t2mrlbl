@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils'
 import { productsService } from '@/services/products'
 import type { ProductRecord } from '@/types/product'
 import { ProductDetailModal } from '@/components/ProductDetailModal'
+import LoginGate from '@/components/LoginGate'
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -47,7 +48,7 @@ export default function Layout() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<ProductRecord | null>(null)
 
-  const { user, logout } = useAuth()
+  const { user, logout, isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -188,6 +189,16 @@ export default function Layout() {
     setSelectedProduct(prod)
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0A0B10] text-gray-300 flex items-center justify-center text-sm">
+        Conectando ao Radar...
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) return <LoginGate />
+
   return (
     <div className="flex h-screen w-full bg-[#0A0B10] text-[#F3F4F6] overflow-hidden">
       {/* Sidebar */}
@@ -198,8 +209,8 @@ export default function Layout() {
         )}
       >
         {/* Brand Logo */}
-        <div>
-          <div className="flex items-center justify-between h-16 px-4 border-b border-[#1E2232]">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex-shrink-0 flex items-center justify-between h-16 px-4 border-b border-[#1E2232]">
             {!collapsed ? (
               <NavLink to="/" className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00F2FF] to-[#7000FF] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
@@ -236,7 +247,7 @@ export default function Layout() {
           </div>
 
           {/* Nav Links */}
-          <nav className="p-3 space-y-1.5 mt-2">
+          <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5 mt-2 scrollbar-thin">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.to

@@ -23,8 +23,8 @@ import { shopeeService, type ShopeeConnectionStatus } from '@/services/shopee'
 
 export default function SettingsPage() {
   const { user, login } = useAuth()
-  const [email, setEmail] = useState(user?.email || 'luka2510@hotmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState(user?.email || '')
+  const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [shopeeStatus, setShopeeStatus] = useState<ShopeeConnectionStatus | null>(null)
   const [loadingShopee, setLoadingShopee] = useState(false)
@@ -103,7 +103,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2.5 pb-3 border-b border-[#212538]">
             <User className="w-5 h-5 text-[#00F2FF]" />
             <div>
-              <h3 className="text-sm font-bold text-white">Conta do Usuário (Single-User)</h3>
+              <h3 className="text-sm font-bold text-white">Conta do Usuário</h3>
               <p className="text-[11px] text-gray-400">Autenticação individual para a plataforma</p>
             </div>
           </div>
@@ -134,14 +134,14 @@ export default function SettingsPage() {
               disabled={saving}
               className="w-full h-10 rounded-xl bg-[#00F2FF] hover:bg-[#00D8E6] text-[#0A0B10] font-bold text-xs"
             >
-              {saving ? 'Validando...' : 'Reconectar / Atualizar Login'}
+              {saving ? 'Validando...' : 'Atualizar Sessão'}
             </Button>
           </form>
 
           <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] text-[11px] text-gray-400 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[#00E676] flex-shrink-0" />
             <span>
-              Usuário ativo: <strong>{user?.email || 'luka2510@hotmail.com'}</strong>
+              Usuário ativo: <strong>{user?.email || '—'}</strong>
             </span>
           </div>
         </div>
@@ -151,9 +151,9 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2.5 pb-3 border-b border-[#212538]">
             <Bot className="w-5 h-5 text-[#7000FF]" />
             <div>
-              <h3 className="text-sm font-bold text-white">Agente Nativo Skip Cloud</h3>
+              <h3 className="text-sm font-bold text-white">Infraestrutura Supabase</h3>
               <p className="text-[11px] text-gray-400">
-                Inteligência contextual com ferramentas PB
+                Banco, autenticação, APIs e segurança do Radar
               </p>
             </div>
           </div>
@@ -161,18 +161,18 @@ export default function SettingsPage() {
           <div className="space-y-3 text-xs">
             <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] flex items-center justify-between">
               <span className="text-gray-400">Slug do Agente:</span>
-              <span className="font-mono font-bold text-[#00F2FF]">analista-radar</span>
+              <span className="font-mono font-bold text-[#00F2FF]">radar-api</span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] flex items-center justify-between">
-              <span className="text-gray-400">Modelo / Tier:</span>
-              <span className="font-mono text-white">fast (baixa latência)</span>
+              <span className="text-gray-400">Backend:</span>
+              <span className="font-mono text-white">Supabase Edge Functions</span>
             </div>
 
             <div className="p-3 rounded-xl bg-[#0D0F18] border border-[#212538] flex items-center justify-between">
               <span className="text-gray-400">Coleções Acessadas:</span>
               <span className="font-mono text-[#00E676]">
-                products, discovered_products, ai_insights
+                products, campaigns, tracking_links, conversions
               </span>
             </div>
 
@@ -357,7 +357,7 @@ export default function SettingsPage() {
             </h4>
             <p className="text-[11px] text-gray-300 leading-relaxed">
               O token nunca é exposto em texto plano na interface do usuário. No backend, ele é
-              criptografado com padrão AES e armazenado de forma segura nas tabelas do Skip Cloud.
+              criptografado com padrão AES e armazenado de forma segura no backend do Radar.
             </p>
           </div>
         </div>

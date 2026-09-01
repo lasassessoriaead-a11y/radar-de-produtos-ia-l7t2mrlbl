@@ -10,7 +10,7 @@ import type {
   AiPerformanceInsightsResponse,
 } from '@/types/publishing'
 
-const BASE_URL = import.meta.env.VITE_POCKETBASE_URL || ''
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 
 export const publishingService = {
   // Publications

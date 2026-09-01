@@ -79,7 +79,7 @@ export default function AudienceRadarPage() {
   const [desireInput] = useState('')
   const [selectedProvider, setSelectedProvider] = useState<
     'reddit' | 'youtube' | 'google_search' | 'forums_reviews'
-  >('reddit')
+  >('google_search')
   const [selectedSubreddit, setSelectedSubreddit] = useState('')
 
   // Lista de Providers & Status

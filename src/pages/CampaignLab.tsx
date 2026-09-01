@@ -154,7 +154,7 @@ export default function CampaignLabPage() {
   const [selectedVariationLetter, setSelectedVariationLetter] = useState<'A' | 'B' | 'C'>('A')
   const [multiChannelCopies, setMultiChannelCopies] = useState<Record<string, string>>({})
   const [videoScripts, setVideoScripts] = useState<Record<string, unknown>>({})
-  const [estimatedScore, setEstimatedScore] = useState(85)
+  const [estimatedScore, setEstimatedScore] = useState(0)
   const [scoreBreakdown, setScoreBreakdown] = useState<ScoreBreakdown | null>(null)
   const [complianceReview, setComplianceReview] = useState<ComplianceReviewReport | null>(null)
 
@@ -310,10 +310,18 @@ export default function CampaignLabPage() {
     loadInitialProduct()
   }, [productId, discoveredId, editCampaignId])
 
+  const isProductVerifiedForCampaign = (() => {
+    const genericTitle = !productData.title.trim() || /^produto\s+(shopee|mercado livre|amazon)?$/i.test(productData.title.trim())
+    const missingImage = !productData.image_url?.trim()
+    const missingPrice = !(productData.price > 0 || productData.promo_price > 0)
+    const missingDestination = !(affiliateInput || productData.affiliate_url || productData.product_url)
+    return !genericTitle && !missingImage && !missingPrice && !missingDestination
+  })()
+
   // 2. Generate 1-Click Complete Campaign
   const handleGenerateFullCampaign = async () => {
-    if (!productData.title.trim()) {
-      toast.error('Informe o título do produto para iniciar a criação da campanha')
+    if (!isProductVerifiedForCampaign) {
+      toast.error('Produto ainda não validado. Confirme título, foto, preço e link antes de gerar campanha.')
       return
     }
 
@@ -355,7 +363,43 @@ export default function CampaignLabPage() {
       setComplianceReview(res.compliance_review || null)
 
       setHasGenerated(true)
-      toast.success('Campanha completa gerada com sucesso pela IA!')
+
+      const selectedAngle = (res.selling_angles || []).find((a) => a.id === selectedAngleId)
+      const saved = await campaignService.saveCampaign({
+        product_id: productData.id || '',
+        discovered_id: productData.discovered_id || '',
+        product_title: productData.title,
+        product_image: productData.image_url,
+        product_category: productData.category,
+        platform: productData.platform,
+        product_url: productData.product_url,
+        affiliate_url: affiliateInput || productData.affiliate_url,
+        price_at_creation: productData.price,
+        promo_price_at_creation: productData.promo_price,
+        commission_rate_at_creation: productData.commission_rate,
+        commission_amount_at_creation: productData.commission_amount,
+        campaign_name: campaignName,
+        selected_angle_id: selectedAngleId,
+        selected_angle_title: selectedAngle?.title || 'Problema & Solução',
+        target_audience: selectedAngle?.public || 'Geral',
+        recommended_channels: ['TikTok', 'Instagram', 'YouTube Shorts'],
+        primary_channel: 'TikTok',
+        primary_format: 'script_30s',
+        status: 'draft',
+        product_intelligence: res.product_intelligence,
+        selling_angles: res.selling_angles || [],
+        hooks_bank: res.hooks_bank || [],
+        generated_copies: res.multi_channel_copies || {},
+        video_scripts: res.video_scripts_collection || {},
+        estimated_score: res.estimated_score || 87,
+        score_breakdown: res.score_breakdown,
+        compliance_status: res.compliance_review?.status || 'approved',
+        compliance_report: res.compliance_review,
+        variations: res.variations || [],
+      } as Partial<CampaignRecord> & { variations?: CampaignVariation[] })
+
+      setSavedCampaignId(saved.campaign_id)
+      toast.success('Campanha gerada e salva automaticamente no Histórico!')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Falha ao gerar campanha'
       console.error('Error generating campaign:', err)
@@ -542,7 +586,7 @@ Pedido do Usuário: ${userText}`
           <Button
             size="sm"
             onClick={handleGenerateFullCampaign}
-            disabled={isGenerating || !productData.title}
+            disabled={isGenerating || !isProductVerifiedForCampaign}
             className="h-9 px-4 bg-gradient-to-r from-[#00F2FF] to-[#00C4D4] hover:opacity-90 text-[#0A0B10] font-black text-xs gap-1.5 shadow-[0_0_20px_rgba(0,242,255,0.3)]"
           >
             <Sparkles className={cn('w-3.5 h-3.5', isGenerating && 'animate-spin')} />
@@ -584,7 +628,19 @@ Pedido do Usuário: ${userText}`
         </div>
       </div>
 
-      {/* CARD CRM LEARNINGS (FASE 8) */}
+      {!isProductVerifiedForCampaign && productData.id && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-300 mt-0.5" />
+          <div>
+            <div className="text-sm font-bold text-amber-200">Produto ainda não validado para campanha</div>
+            <p className="text-xs text-amber-100/80 mt-1">
+              O Radar bloqueou a criação automática porque faltam dados confiáveis do produto. Precisamos confirmar título, foto, preço e link antes de gerar criativos ou campanhas.
+            </p>
+          </div>
+        </div>
+      )}
+
+            {/* CARD CRM LEARNINGS (FASE 8) */}
       <div className="p-4 rounded-xl bg-gradient-to-r from-[#0d1726] via-[#101e38] to-[#0d1726] border border-[#00F2FF]/30 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-[#00F2FF]/10 text-[#00F2FF]">
@@ -618,11 +674,17 @@ Pedido do Usuário: ${userText}`
         <div className="lg:col-span-8 p-5 rounded-2xl bg-[#141624] border border-[#232738] space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <img
-                src={productData.image_url || 'https://img.usecurling.com/p/150/150?q=product'}
-                alt={productData.title}
-                className="w-16 h-16 rounded-xl object-cover bg-[#0A0B10] border border-[#232738] flex-shrink-0"
-              />
+              {productData.image_url ? (
+                <img
+                  src={productData.image_url}
+                  alt={productData.title}
+                  className="w-16 h-16 rounded-xl object-cover bg-[#0A0B10] border border-[#232738] flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-[#0A0B10] border border-dashed border-amber-500/40 flex items-center justify-center text-[9px] text-amber-300 text-center px-1 flex-shrink-0">
+                  Sem imagem validada
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge
@@ -637,10 +699,16 @@ Pedido do Usuário: ${userText}`
                   >
                     {productData.category}
                   </Badge>
-                  <OpportunityBadge
-                    level={(productData.opportunity_level as any) || 'good'}
-                    size="sm"
-                  />
+                  {isProductVerifiedForCampaign ? (
+                    <OpportunityBadge
+                      level={(productData.opportunity_level as any) || 'good'}
+                      size="sm"
+                    />
+                  ) : (
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30 text-[10px]">
+                      AGUARDANDO VALIDAÇÃO
+                    </Badge>
+                  )}
                 </div>
                 <h3 className="text-sm font-bold text-white line-clamp-1">
                   {productData.title || 'Produto sem título'}
@@ -652,16 +720,18 @@ Pedido do Usuário: ${userText}`
             <div className="flex items-center gap-4 bg-[#0E1018] px-3.5 py-2 rounded-xl border border-[#202538] font-mono text-xs w-full sm:w-auto justify-between">
               <div>
                 <span className="text-[10px] text-gray-400 block">Preço no Radar</span>
-                <span className="font-bold text-white">
-                  R$ {(productData.promo_price || productData.price || 0).toFixed(2)}
+                <span className={`font-bold ${isProductVerifiedForCampaign ? 'text-white' : 'text-amber-300'}`}>
+                  {isProductVerifiedForCampaign
+                    ? `R$ ${(productData.promo_price || productData.price || 0).toFixed(2)}`
+                    : 'Aguardando'}
                 </span>
               </div>
               <div className="border-l border-[#202538] pl-3">
                 <span className="text-[10px] text-[#00E676] block">
                   Comissão ({productData.commission_rate}%)
                 </span>
-                <span className="font-bold text-[#00E676]">
-                  +R$ {(productData.commission_amount || 0).toFixed(2)}
+                <span className={`font-bold ${isProductVerifiedForCampaign ? 'text-[#00E676]' : 'text-gray-500'}`}>
+                  {isProductVerifiedForCampaign ? `+R$ ${(productData.commission_amount || 0).toFixed(2)}` : '—'}
                 </span>
               </div>
             </div>
@@ -726,11 +796,15 @@ Pedido do Usuário: ${userText}`
             </div>
 
             <div className="flex items-center gap-4 pt-3">
-              <ScoreRing score={estimatedScore} size="lg" />
+              <ScoreRing score={isProductVerifiedForCampaign ? estimatedScore : 0} size="lg" />
               <div>
-                <div className="text-2xl font-black font-mono text-white">{estimatedScore}/100</div>
+                <div className="text-2xl font-black font-mono text-white">
+                  {isProductVerifiedForCampaign ? `${estimatedScore}/100` : '—'}
+                </div>
                 <p className="text-[11px] text-gray-400 leading-tight mt-0.5">
-                  Baseado em força do gancho, clareza, apelo e conformidade com políticas.
+                  {isProductVerifiedForCampaign
+                    ? 'Baseado em força do gancho, clareza, apelo e conformidade com políticas.'
+                    : 'O score só será calculado depois que o produto for validado.'}
                 </p>
               </div>
             </div>

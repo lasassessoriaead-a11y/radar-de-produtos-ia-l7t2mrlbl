@@ -701,11 +701,17 @@ export default function PublishingHub() {
             </p>
             <Button
               onClick={() => {
-                if (campaigns.length > 0) {
-                  setSelectedCampaignId(campaigns[0].id)
-                  setIsPublishModalOpen(true)
-                  setPublishStep(1)
+                if (campaigns.length === 0) {
+                  toast({
+                    title: 'Primeiro crie uma campanha',
+                    description: 'Você ainda não tem campanhas disponíveis. Vou abrir o Laboratório de Campanhas para criar a primeira.',
+                  })
+                  window.location.href = '/laboratorio'
+                  return
                 }
+                setSelectedCampaignId(campaigns[0].id)
+                setPublishStep(1)
+                setIsPublishModalOpen(true)
               }}
               size="sm"
               className="bg-[#00F2FF] hover:bg-[#00D0DC] text-[#0A0B10] font-bold text-xs"
