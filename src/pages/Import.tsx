@@ -20,6 +20,7 @@ import { productsService } from '@/services/products'
 import pb from '@/lib/pocketbase/client'
 import type { ProductRecord } from '@/types/product'
 import { toast } from 'sonner'
+import { shopeeService } from '@/services/shopee'
 
 interface CsvRow {
   [key: string]: string
@@ -52,6 +53,7 @@ export default function ImportPage() {
   const [manualLoading, setManualLoading] = useState(false)
   const [quickUrl, setQuickUrl] = useState('')
   const [quickLoading, setQuickLoading] = useState(false)
+  const [shopeeConnected, setShopeeConnected] = useState(false)
 
   // CSV State
   const [csvFile, setCsvFile] = useState<File | null>(null)
@@ -84,6 +86,8 @@ export default function ImportPage() {
     }
     setQuickLoading(true)
     try {
+      await shopeeService.setMode('manual')
+      setShopeeConnected(true)
       const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/product-import`
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -355,22 +359,20 @@ export default function ImportPage() {
       <div className="pb-4 border-b border-[#1E2232]">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded bg-[#00E676]/10 text-[#00E676] border border-[#00E676]/30 font-bold">
-            Entrada de Dados
+            Fontes de Produtos
           </span>
-          <span className="text-xs text-gray-400 font-mono">Manual + CSV com Mapeamento</span>
+          <span className="text-xs text-gray-400 font-mono">Shopee Manual + Link + CSV</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
           <UploadCloud className="w-7 h-7 text-[#00F2FF]" />
           Importar Produtos para o Radar
         </h1>
         <p className="text-xs md:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
-          Cadastre produtos individualmente ou importe lotes em massa via CSV. O backend calcula
-          instantaneamente o Score de Oportunidade e aciona o Analista IA para preencher o raio-x de
-          conversão.
+          Conecte a Shopee em modo manual e importe produtos por link. O Radar salva o marketplace, traz o produto para o catálogo e prepara análise, campanha e tracking.
         </p>
       </div>
 
-      <Tabs defaultValue="manual" className="w-full">
+      <Tabs defaultValue="link" className="w-full">
         <TabsList className="grid grid-cols-3 bg-[#12141F] p-1 border border-[#232738] rounded-2xl mb-6">
           <TabsTrigger
             value="link"
@@ -398,9 +400,14 @@ export default function ImportPage() {
         <TabsContent value="link" className="m-0 space-y-6">
           <div className="p-6 rounded-2xl bg-[#141622] border border-[#232738] space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-white">Importação automática por link</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Shopee — Conectar e importar por link</h3>
+                <span className={`text-[10px] px-2 py-0.5 rounded border ${shopeeConnected ? 'bg-[#00E676]/10 text-[#00E676] border-[#00E676]/30' : 'bg-[#EE4D2D]/10 text-[#FF765B] border-[#EE4D2D]/30'}`}>
+                  {shopeeConnected ? 'CONECTADA' : 'MODO MANUAL'}
+                </span>
+              </div>
               <p className="text-xs text-gray-400 mt-1">
-                Cole a URL do produto. O Radar tenta capturar título, imagem e preço, salva no Supabase e abre o Laboratório de Campanhas.
+                Cole um link normal ou um link curto de afiliado da Shopee. O Radar ativa a Shopee Manual, tenta capturar os dados do produto, salva no catálogo e abre o Laboratório de Campanhas.
               </p>
             </div>
             <div className="flex flex-col md:flex-row gap-3">
@@ -416,11 +423,11 @@ export default function ImportPage() {
                 disabled={quickLoading}
                 className="h-11 px-5 bg-gradient-to-r from-[#00F2FF] to-[#7000FF] text-[#0A0B10] font-bold"
               >
-                {quickLoading ? 'Importando...' : 'Importar e abrir campanha'}
+                {quickLoading ? 'Conectando & importando...' : 'Conectar Shopee e importar'}
               </Button>
             </div>
             <div className="text-[11px] text-gray-500">
-              A Shopee pode limitar alguns metadados. Quando isso acontecer, o Radar salva o link e leva você ao produto para completar somente o que faltar.
+              Links curtos s.shopee.com.br são preservados como link de afiliado quando possível. Se a Shopee limitar metadados, o Radar mantém o produto e pede somente os campos que faltarem.
             </div>
           </div>
         </TabsContent>
