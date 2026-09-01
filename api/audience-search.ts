@@ -3,10 +3,23 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
   if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const key = process.env.GOOGLE_SEARCH_API_KEY
   const cx = process.env.GOOGLE_SEARCH_CX
+
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      success: true,
+      provider: 'google_search',
+      provider_name: 'Google Search',
+      is_configured: Boolean(key && cx),
+      status: key && cx ? 'active' : 'pending_integration',
+      status_label: key && cx ? 'Ativo' : 'Aguardando credenciais',
+    })
+  }
+
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
   if (!key || !cx) {
     return res.status(500).json({
       provider: 'google_search',
