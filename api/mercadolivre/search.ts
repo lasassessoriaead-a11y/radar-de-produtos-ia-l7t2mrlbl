@@ -96,21 +96,34 @@ export default async function handler(req: any, res: any) {
 
     if (!rr.ok) {
       const mlMessage = String(data?.message || data?.error || data?.raw || '')
+
+      // Mercado Livre can restrict the legacy site-wide textual search for an app.
+      // Do not pretend there is another official endpoint that provides the same
+      // marketplace-wide catalogue. Return the real upstream restriction clearly.
+      if (rr.status === 403) {
+        return res.status(200).json({
+          success: false,
+          marketplace: 'Mercado Livre',
+          status: 'search_restricted',
+          message:
+            'Sua conta está conectada, mas o Mercado Livre não liberou a busca geral de produtos para este aplicativo. A conexão OAuth está válida; é necessário habilitar esse recurso no aplicativo do Mercado Livre para usar o Caçador com catálogo real.',
+          api_status: rr.status,
+          api_error: data?.error || null,
+          upstream_message: mlMessage || null,
+          phase,
+          total_found: 0,
+          products: [],
+        })
+      }
+
       return res.status(200).json({
         success: false,
         marketplace: 'Mercado Livre',
-        status:
-          rr.status === 401
-            ? 'token_required'
-            : rr.status === 403
-              ? 'search_restricted'
-              : 'api_error',
+        status: rr.status === 401 ? 'token_required' : 'api_error',
         message:
-          rr.status === 403
-            ? 'O Mercado Livre bloqueou a busca textual geral para esta aplicação, embora a conta esteja conectada.'
-            : rr.status === 401
-              ? 'A autorização do Mercado Livre precisa ser renovada.'
-              : mlMessage || `A API do Mercado Livre respondeu com HTTP ${rr.status}.`,
+          rr.status === 401
+            ? 'A autorização do Mercado Livre precisa ser renovada.'
+            : mlMessage || `A API do Mercado Livre respondeu com HTTP ${rr.status}.`,
         api_status: rr.status,
         api_error: data?.error || null,
         phase,
