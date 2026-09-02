@@ -167,7 +167,12 @@ export default function HunterPage() {
         setTokenRequiredMessage(res.message || 'A conexão oficial do Mercado Livre precisa ser renovada.')
         setSearchResults([])
         toast.info('Mercado Livre: reconecte sua conta em Configurações.')
+      } else if (res.status === 'search_restricted' || res.status === 'api_error') {
+        setTokenRequiredMessage(res.message || 'Esta modalidade de busca não foi liberada pelo Mercado Livre para a aplicação.')
+        toast.error(res.message || 'Busca não disponível pela API do Mercado Livre.')
+        setSearchResults([])
       } else if (!res.success) {
+        setTokenRequiredMessage(res.message || null)
         toast.error(res.message || 'Erro na resposta do conector do marketplace')
         setSearchResults([])
       } else {
