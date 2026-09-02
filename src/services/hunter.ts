@@ -69,7 +69,7 @@ export const hunterService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify({ prompt }),
     })
@@ -91,7 +91,7 @@ export const hunterService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify({ id: productId, is_discovered: isDiscovered }),
     })
@@ -114,7 +114,7 @@ export const hunterService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify({ id: discoveredId }),
     })
@@ -135,7 +135,7 @@ export const hunterService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify({ id: discoveredId }),
     })
@@ -185,7 +185,7 @@ export const watchlistService = {
   async getWatchlist(): Promise<WatchlistItemRecord[]> {
     const res = await fetch(`${BASE_URL}/backend/v1/watchlist/items`, {
       headers: {
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
     })
 
@@ -221,7 +221,7 @@ export const watchlistService = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify(item),
     })
