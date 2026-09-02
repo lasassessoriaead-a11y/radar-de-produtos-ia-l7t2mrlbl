@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import type { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { supabaseAuth, type SupabaseAuthUser, type SupabaseSession } from '@/lib/supabase'
 import pb from '@/lib/pocketbase/client'
 
 export interface AuthUser {
@@ -22,22 +21,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-function mapUser(user: User | null): AuthUser | null {
+function mapUser(user: SupabaseAuthUser | null | undefined): AuthUser | null {
   if (!user) return null
+  const metaName = typeof user.user_metadata?.name === 'string' ? user.user_metadata.name : undefined
   return {
     id: user.id,
-    email: user.email || undefined,
-    name:
-      (user.user_metadata?.name as string | undefined) ||
-      (user.email ? user.email.split('@')[0] : undefined),
+    email: user.email,
+    name: metaName || user.email?.split('@')[0],
   }
 }
 
-function mirrorSession(accessToken?: string | null, user?: User | null) {
-  if (accessToken && user) {
-    // Existing services still read pb.authStore.token. Keep only the Supabase JWT there;
-    // authentication itself is fully handled by Supabase.
-    pb.authStore.save(accessToken, mapUser(user) as any)
+function mirrorSession(session: SupabaseSession | null) {
+  if (session?.access_token && session.user) {
+    pb.authStore.save(session.access_token, mapUser(session.user) as any)
   } else {
     pb.authStore.clear()
   }
@@ -48,59 +44,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const apply = (session: SupabaseSession | null) => {
+    setUser(mapUser(session?.user))
+    setToken(session?.access_token || null)
+    mirrorSession(session)
+  }
+
   useEffect(() => {
     let active = true
 
     const bootstrap = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession()
-        if (error) throw error
-        if (!active) return
-        const session = data.session
-        setUser(mapUser(session?.user || null))
-        setToken(session?.access_token || null)
-        mirrorSession(session?.access_token, session?.user || null)
+        let session = supabaseAuth.load()
+        if (!session) {
+          if (active) apply(null)
+          return
+        }
+
+        const now = Math.floor(Date.now() / 1000)
+        if (session.expires_at && session.expires_at <= now + 30 && session.refresh_token) {
+          session = await supabaseAuth.refresh(session.refresh_token)
+        } else {
+          const freshUser = await supabaseAuth.getUser(session.access_token)
+          session = { ...session, user: freshUser }
+          supabaseAuth.save(session)
+        }
+
+        if (active) apply(session)
       } catch (err) {
-        console.error('Supabase session bootstrap failed:', err)
-        setUser(null)
-        setToken(null)
-        mirrorSession(null, null)
+        console.warn('Sessão Supabase inválida, limpando sessão local.', err)
+        supabaseAuth.save(null)
+        if (active) apply(null)
       } finally {
         if (active) setIsLoading(false)
       }
     }
 
     bootstrap()
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active) return
-      setUser(mapUser(session?.user || null))
-      setToken(session?.access_token || null)
-      mirrorSession(session?.access_token, session?.user || null)
-      setIsLoading(false)
-    })
-
     return () => {
       active = false
-      listener.subscription.unsubscribe()
     }
   }, [])
 
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      })
-      if (error) throw new Error(
-        error.message === 'Invalid login credentials'
-          ? 'E-mail ou senha incorretos.'
-          : error.message
-      )
-      setUser(mapUser(data.user))
-      setToken(data.session?.access_token || null)
-      mirrorSession(data.session?.access_token, data.user)
+      const session = await supabaseAuth.signIn(email.trim(), password)
+      apply(session)
+    } catch (err: any) {
+      const msg = String(err?.message || '')
+      if (/invalid login credentials/i.test(msg)) throw new Error('E-mail ou senha incorretos.')
+      throw err
     } finally {
       setIsLoading(false)
     }
@@ -109,35 +103,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, name?: string) => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: { data: { name: name || email.split('@')[0] } },
-      })
-      if (error) {
-        const msg = /already registered|already been registered|user already/i.test(error.message)
-          ? 'Este e-mail já possui uma conta. Use a opção Entrar.'
-          : error.message
-        throw new Error(msg)
-      }
-
-      if (!data.session) {
+      const session = await supabaseAuth.signUp(email.trim(), password, name)
+      if (!session) {
         throw new Error('Conta criada. Verifique seu e-mail para confirmar o acesso antes de entrar.')
       }
-
-      setUser(mapUser(data.user))
-      setToken(data.session.access_token)
-      mirrorSession(data.session.access_token, data.user)
+      apply(session)
+    } catch (err: any) {
+      const msg = String(err?.message || '')
+      if (/already registered|already been registered|user already/i.test(msg)) {
+        throw new Error('Este e-mail já possui uma conta. Use a opção Entrar.')
+      }
+      throw err
     } finally {
       setIsLoading(false)
     }
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    mirrorSession(null, null)
-    setUser(null)
-    setToken(null)
+    await supabaseAuth.signOut(token || undefined)
+    apply(null)
   }
 
   return (
