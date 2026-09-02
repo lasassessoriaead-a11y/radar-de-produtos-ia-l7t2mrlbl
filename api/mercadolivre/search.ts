@@ -1,4 +1,4 @@
-import { getMercadoLivreSession, requireSupabaseUser } from '../../server/mercadolivre'
+import { getMercadoLivreSession, requireSupabaseUser } from '../../server/mercadolivre.js'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
