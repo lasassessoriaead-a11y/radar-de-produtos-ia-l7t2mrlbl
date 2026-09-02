@@ -65,22 +65,70 @@ export const hunterService = {
    * Natural language parse of search intent into structured search filters
    */
   async findForMe(prompt: string): Promise<InterpretedFiltersResult> {
-    const res = await fetch(`${BASE_URL}/backend/v1/hunter/find-for-me`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${pb.authStore.token}`,
-      },
-      body: JSON.stringify({ prompt }),
-    })
+    const fallback = (): InterpretedFiltersResult => {
+      const text = prompt.trim()
+      const lower = text.toLowerCase()
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erro ao interpretar intenção em linguagem natural')
+      const maxPriceMatch =
+        lower.match(/(?:até|ate|max(?:imo)?|menos de)\s*r?\$?\s*(\d+[\d.,]*)/) ||
+        lower.match(/r?\$?\s*(\d+[\d.,]*)\s*(?:ou menos|no máximo|no maximo)/)
+      const minPriceMatch =
+        lower.match(/(?:acima de|mais de|mínimo|minimo|a partir de)\s*r?\$?\s*(\d+[\d.,]*)/)
+      const minSalesMatch =
+        lower.match(/(?:pelo menos|mínimo|minimo|mais de)\s*(\d+)\s*(?:vendas?|vendidos?)/)
+      const ratingMatch =
+        lower.match(/(?:nota|avaliação|avaliacao)\s*(?:mínima|minima|acima de|de)?\s*(\d(?:[.,]\d)?)/)
+
+      const toNumber = (raw?: string) =>
+        raw ? Number(raw.replace(/\./g, '').replace(',', '.')) : undefined
+
+      const cleaned = text
+        .replace(/(?:até|ate|max(?:imo)?|menos de|acima de|mais de|mínimo|minimo|a partir de)\s*r?\$?\s*\d+[\d.,]*/gi, ' ')
+        .replace(/(?:pelo menos|mínimo|minimo|mais de)\s*\d+\s*(?:vendas?|vendidos?)/gi, ' ')
+        .replace(/(?:nota|avaliação|avaliacao)\s*(?:mínima|minima|acima de|de)?\s*\d(?:[.,]\d)?/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+      return {
+        query: cleaned || text,
+        category: '',
+        min_price: toNumber(minPriceMatch?.[1]),
+        max_price: toNumber(maxPriceMatch?.[1]),
+        min_sales: minSalesMatch ? Number(minSalesMatch[1]) : undefined,
+        min_rating: ratingMatch ? Number(ratingMatch[1].replace(',', '.')) : undefined,
+        estimated_commission_rate: undefined,
+        ai_intent_summary: 'Busca interpretada localmente e enviada para a API oficial do Mercado Livre.',
+      }
     }
 
-    const data = await res.json()
-    return data.interpreted_filters
+    try {
+      const res = await fetch(`${BASE_URL}/backend/v1/hunter/find-for-me`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${pb.authStore.token}`,
+        },
+        body: JSON.stringify({ prompt }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const msg = String(err?.error || err?.message || '')
+        if (res.status === 404 || /rota não encontrada|route not found|not found/i.test(msg)) {
+          return fallback()
+        }
+        throw new Error(msg || 'Erro ao interpretar intenção em linguagem natural')
+      }
+
+      const data = await res.json()
+      return data.interpreted_filters || fallback()
+    } catch (err: any) {
+      const msg = String(err?.message || '')
+      if (/rota não encontrada|route not found|failed to fetch|not found/i.test(msg)) {
+        return fallback()
+      }
+      throw err
+    }
   },
 
   /**
