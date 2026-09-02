@@ -33,9 +33,16 @@ export const hunterService = {
       body: JSON.stringify(filters),
     })
 
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok && data?.status !== 'token_required') {
-      throw new Error(data.error || data.message || `Erro ao buscar produtos (${res.status})`)
+    const raw = await res.text()
+    let data: any = {}
+    try {
+      data = raw ? JSON.parse(raw) : {}
+    } catch {
+      data = { message: raw || `Resposta inválida do servidor (HTTP ${res.status}).` }
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || data.error || `Erro ao buscar produtos (${res.status})`)
     }
 
     return data as HunterSearchResult
