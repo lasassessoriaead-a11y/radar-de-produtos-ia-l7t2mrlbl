@@ -1,4 +1,4 @@
-import { getMercadoLivreSession, requireSupabaseUser } from '../../server/mercadolivre'
+import { getMercadoLivreSession, requireSupabaseUser } from '../../server/mercadolivre.js'
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store')
