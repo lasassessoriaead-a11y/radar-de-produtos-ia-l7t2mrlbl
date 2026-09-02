@@ -10,28 +10,55 @@ import type {
   ProductRecord,
 } from '@/types/product'
 
-const BASE_URL = import.meta.env.VITE_POCKETBASE_URL
+const BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 
 export const hunterService = {
   /**
    * Search real products on Mercado Livre API or other future marketplace adapters
    */
   async searchMarketplace(filters: HunterSearchFilters): Promise<HunterSearchResult> {
-    const res = await fetch(`${BASE_URL}/backend/v1/hunter/search`, {
+    const isMercadoLivre = !filters.marketplace || filters.marketplace === 'Mercado Livre'
+    const url = isMercadoLivre
+      ? '/api/mercadolivre/search'
+      : `${BASE_URL}/backend/v1/hunter/search`
+
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: pb.authStore.token,
+        Authorization: `Bearer ${pb.authStore.token}`,
       },
       body: JSON.stringify(filters),
     })
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || `Erro ao buscar produtos (${res.status})`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok && data?.status !== 'token_required') {
+      throw new Error(data.error || data.message || `Erro ao buscar produtos (${res.status})`)
     }
 
-    return await res.json()
+    return data as HunterSearchResult
+  },
+
+  async importMercadoLivreProduct(product: DiscoveredProductRecord): Promise<{
+    success: boolean
+    message: string
+    product: ProductRecord
+  }> {
+    const res = await fetch('/api/mercadolivre/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${pb.authStore.token}`,
+      },
+      body: JSON.stringify(product),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.error || 'Não foi possível adicionar o produto ao Radar.')
+    }
+    return data
   },
 
   /**
