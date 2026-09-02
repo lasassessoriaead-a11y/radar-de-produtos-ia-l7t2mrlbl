@@ -49,17 +49,30 @@ export default async function handler(req: any, res: any) {
       endpoint.searchParams.set('price', `${min || '*'}-${max || '*'}`)
     }
 
-    const rr = await fetch(endpoint.toString(), {
+    let rr = await fetch(endpoint.toString(), {
       headers: {
         Authorization: `Bearer ${session.access_token}`,
         Accept: 'application/json',
       },
     })
-    const data = await rr.json().catch(() => ({}))
+    let data = await rr.json().catch(() => ({}))
+
+    // A busca textual geral /sites/MLB/search?q= pode ser restringida pela API.
+    // Quando isso ocorrer, devolvemos uma resposta tratada ao frontend em vez de 500.
     if (!rr.ok) {
-      return res.status(rr.status).json({
-        error: data?.message || data?.error || 'Falha na busca do Mercado Livre.',
-        status: 'api_error',
+      const mlMessage = String(data?.message || data?.error || '')
+      return res.status(200).json({
+        success: false,
+        marketplace: 'Mercado Livre',
+        status: rr.status === 401 ? 'token_required' : 'search_restricted',
+        message:
+          rr.status === 403
+            ? 'O Mercado Livre restringiu a busca textual geral para esta aplicação. A conexão da conta continua ativa; use um link ou código MLB para importar um produto, ou consulte os produtos da conta conectada.'
+            : mlMessage || 'A API do Mercado Livre recusou esta busca.',
+        api_status: rr.status,
+        api_error: data?.error || null,
+        total_found: 0,
+        products: [],
       })
     }
 
@@ -125,13 +138,15 @@ export default async function handler(req: any, res: any) {
       products,
     })
   } catch (err: any) {
-    return res.status(401).json({
+    const message = String(err?.message || 'Falha ao consultar o Mercado Livre.')
+    const authProblem = /não conectado|expirada|autenticação|sessão|token/i.test(message)
+    return res.status(200).json({
       success: false,
       marketplace: 'Mercado Livre',
-      status: 'token_required',
+      status: authProblem ? 'token_required' : 'api_error',
       total_found: 0,
       products: [],
-      message: err?.message || 'Mercado Livre não conectado.',
+      message,
     })
   }
 }
