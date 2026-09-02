@@ -164,9 +164,9 @@ export default function HunterPage() {
       const res = await hunterService.searchMarketplace(filters)
 
       if (res.status === 'token_required') {
-        setTokenRequiredMessage(res.message || 'Token de acesso do Mercado Livre necessário.')
+        setTokenRequiredMessage(res.message || 'A conexão oficial do Mercado Livre precisa ser renovada.')
         setSearchResults([])
-        toast.info('Mercado Livre: configure seu token de acesso nas Configurações.')
+        toast.info('Mercado Livre: reconecte sua conta em Configurações.')
       } else if (!res.success) {
         toast.error(res.message || 'Erro na resposta do conector do marketplace')
         setSearchResults([])
@@ -232,8 +232,12 @@ export default function HunterPage() {
   const handleApprove = async (product: DiscoveredProductRecord) => {
     setApprovingIds((prev) => new Set(prev).add(product.id))
     try {
-      await hunterService.approveProduct(product.id)
-      toast.success(`"${product.title.slice(0, 30)}..." aprovado e salvo no Radar!`)
+      if (product.source === 'mercadolivre_api') {
+        await hunterService.importMercadoLivreProduct(product)
+      } else {
+        await hunterService.approveProduct(product.id)
+      }
+      toast.success(`"${product.title.slice(0, 30)}..." validado e salvo no Radar!`)
       setPendingProducts((prev) => prev.filter((p) => p.id !== product.id))
       setSearchResults((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, status: 'approved' } : p)),
