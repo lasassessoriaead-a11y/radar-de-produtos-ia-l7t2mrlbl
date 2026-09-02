@@ -28,54 +28,98 @@ function level(score: number) {
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store')
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+
+  if (req.method !== 'POST') {
+    return res.status(200).json({
+      success: false,
+      marketplace: 'Mercado Livre',
+      status: 'method_not_allowed',
+      message: 'Esta rota aceita apenas buscas POST.',
+      total_found: 0,
+      products: [],
+    })
+  }
+
+  let phase = 'start'
 
   try {
+    phase = 'radar_auth'
     await requireSupabaseUser(req)
+
+    phase = 'mercadolivre_session'
     const { session, setCookie } = await getMercadoLivreSession(req)
     if (setCookie) res.setHeader('Set-Cookie', setCookie)
 
+    phase = 'request_parse'
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const q = String(body.query || '').trim()
     const limit = clamp(Number(body.limit || 20), 1, 50)
-    if (!q) return res.status(400).json({ error: 'Informe o produto que deseja buscar.' })
 
+    if (!q) {
+      return res.status(200).json({
+        success: false,
+        marketplace: 'Mercado Livre',
+        status: 'invalid_query',
+        message: 'Informe o produto que deseja buscar.',
+        total_found: 0,
+        products: [],
+      })
+    }
+
+    phase = 'mercadolivre_search'
     const endpoint = new URL('https://api.mercadolibre.com/sites/MLB/search')
     endpoint.searchParams.set('q', q)
     endpoint.searchParams.set('limit', String(limit))
+
     if (Number(body.min_price) > 0 || Number(body.max_price) > 0) {
       const min = Number(body.min_price || 0)
       const max = Number(body.max_price || 0)
       endpoint.searchParams.set('price', `${min || '*'}-${max || '*'}`)
     }
 
-    let rr = await fetch(endpoint.toString(), {
+    const rr = await fetch(endpoint.toString(), {
       headers: {
         Authorization: `Bearer ${session.access_token}`,
         Accept: 'application/json',
+        'User-Agent': 'RadarIA/1.0',
       },
     })
-    let data = await rr.json().catch(() => ({}))
 
-    // A busca textual geral /sites/MLB/search?q= pode ser restringida pela API.
-    // Quando isso ocorrer, devolvemos uma resposta tratada ao frontend em vez de 500.
+    const rawText = await rr.text()
+    let data: any = {}
+    try {
+      data = rawText ? JSON.parse(rawText) : {}
+    } catch {
+      data = { raw: rawText.slice(0, 500) }
+    }
+
     if (!rr.ok) {
-      const mlMessage = String(data?.message || data?.error || '')
+      const mlMessage = String(data?.message || data?.error || data?.raw || '')
       return res.status(200).json({
         success: false,
         marketplace: 'Mercado Livre',
-        status: rr.status === 401 ? 'token_required' : 'search_restricted',
+        status:
+          rr.status === 401
+            ? 'token_required'
+            : rr.status === 403
+              ? 'search_restricted'
+              : 'api_error',
         message:
           rr.status === 403
-            ? 'O Mercado Livre restringiu a busca textual geral para esta aplicação. A conexão da conta continua ativa; use um link ou código MLB para importar um produto, ou consulte os produtos da conta conectada.'
-            : mlMessage || 'A API do Mercado Livre recusou esta busca.',
+            ? 'O Mercado Livre bloqueou a busca textual geral para esta aplicação, embora a conta esteja conectada.'
+            : rr.status === 401
+              ? 'A autorização do Mercado Livre precisa ser renovada.'
+              : mlMessage || `A API do Mercado Livre respondeu com HTTP ${rr.status}.`,
         api_status: rr.status,
         api_error: data?.error || null,
+        phase,
         total_found: 0,
         products: [],
       })
     }
 
+    phase = 'map_results'
     const raw = Array.isArray(data.results) ? data.results : []
     const products = raw
       .map((item: any) => {
@@ -138,15 +182,17 @@ export default async function handler(req: any, res: any) {
       products,
     })
   } catch (err: any) {
-    const message = String(err?.message || 'Falha ao consultar o Mercado Livre.')
-    const authProblem = /não conectado|expirada|autenticação|sessão|token/i.test(message)
+    const message = String(err?.message || err || 'Falha desconhecida.')
+    const authProblem = /não conectado|expirada|autenticação|sessão|token|jwt|bearer/i.test(message)
+
     return res.status(200).json({
       success: false,
       marketplace: 'Mercado Livre',
-      status: authProblem ? 'token_required' : 'api_error',
+      status: authProblem ? 'token_required' : 'internal_error',
+      phase,
       total_found: 0,
       products: [],
-      message,
+      message: `Falha na etapa ${phase}: ${message}`,
     })
   }
 }
