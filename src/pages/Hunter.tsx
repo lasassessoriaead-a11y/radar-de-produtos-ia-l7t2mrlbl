@@ -37,6 +37,28 @@ import type {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
+const RADAR_PRODUCTION_ORIGIN = 'https://radar-de-produtos-ia-l7t2mrlbl.vercel.app'
+
+function ensureProductionOrigin() {
+  if (typeof window === 'undefined') return true
+  const host = window.location.hostname
+  const isPreview =
+    host.endsWith('.vercel.app') &&
+    window.location.origin !== RADAR_PRODUCTION_ORIGIN
+
+  if (isPreview) {
+    const target =
+      RADAR_PRODUCTION_ORIGIN +
+      window.location.pathname +
+      window.location.search +
+      window.location.hash
+    window.location.replace(target)
+    return false
+  }
+
+  return true
+}
+
 export default function HunterPage() {
   const [activeTab, setActiveTab] = useState<'search' | 'watchlist' | 'pending'>('search')
 
@@ -114,6 +136,7 @@ export default function HunterPage() {
   }
 
   useEffect(() => {
+    if (!ensureProductionOrigin()) return
     loadInitialData()
   }, [])
 
@@ -135,6 +158,7 @@ export default function HunterPage() {
 
   // Execute Search on Real ML API
   const handleSearch = async (overrideFilters?: Partial<HunterSearchFilters>) => {
+    if (!ensureProductionOrigin()) return
     const q = overrideFilters?.query !== undefined ? overrideFilters.query : query
     const cat = overrideFilters?.category !== undefined ? overrideFilters.category : category
 
@@ -192,6 +216,7 @@ export default function HunterPage() {
   // Handle Natural Language Parse ("Encontre produtos para mim")
   const handleFindForMe = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!ensureProductionOrigin()) return
     if (!naturalPrompt.trim()) {
       toast.error('Digite o que procura em linguagem natural.')
       return
@@ -779,7 +804,7 @@ export default function HunterPage() {
               <p className="text-xs text-gray-300 leading-relaxed">{tokenRequiredMessage}</p>
               <div className="pt-2 flex items-center gap-3">
                 <a
-                  href="/configuracoes"
+                  href="https://radar-de-produtos-ia-l7t2mrlbl.vercel.app/configuracoes"
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#00F2FF] hover:underline"
                 >
                   Ir para Configurações &gt; Token Mercado Livre
