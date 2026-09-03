@@ -57,6 +57,9 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
   const isHot = product.opportunity_level === 'hot'
   const isGood = product.opportunity_level === 'good'
   const offersTotal = Number((product.raw_data as any)?.offers_total || 0)
+  const relevanceScore = Number((product.raw_data as any)?.relevance_score || 0)
+  const freeShipping = Boolean((product.raw_data as any)?.free_shipping)
+  const condition = String((product.raw_data as any)?.condition || '')
   const hasRealPrice = Number(price) > 0
   const hasRealSales = Number(product.sales_count || 0) > 0
   const hasRealRating = Number(product.rating || 0) > 0
@@ -179,6 +182,16 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
               <span className="text-gray-400">Ofertas / Concorrentes:</span>
               <span className="text-[#FFD600]">{offersTotal > 0 ? offersTotal : 'Não informado'}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Relevância da Busca:</span>
+              <span className="text-[#00F2FF]">{relevanceScore > 0 ? `${relevanceScore}/100` : '—'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Frete:</span>
+              <span className={freeShipping ? 'text-[#00E676]' : 'text-gray-400'}>
+                {freeShipping ? 'Grátis' : 'Não informado como grátis'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -234,6 +247,11 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
                 <span className="text-gray-400">
                   {hasRealSales ? `${product.sales_count} vendas` : 'Vendas não informadas'}
                 </span>
+                {condition && (
+                  <span className="text-gray-500">
+                    {condition === 'new' ? 'Novo' : condition}
+                  </span>
+                )}
               </div>
             </div>
           </div>
