@@ -114,7 +114,8 @@ export default async function handler(req: any, res: any) {
     phase = 'request_parse'
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const q = String(body.query || '').trim()
-    const limit = clamp(Number(body.limit || 20), 1, 30)
+    const limit = clamp(Number(body.limit || 30), 1, 30)
+    const offset = Math.max(0, Number(body.offset || 0))
 
     if (!q) {
       return res.status(200).json({
@@ -136,6 +137,7 @@ export default async function handler(req: any, res: any) {
     endpoint.searchParams.set('site_id', 'MLB')
     endpoint.searchParams.set('q', q)
     endpoint.searchParams.set('limit', String(limit))
+    endpoint.searchParams.set('offset', String(offset))
 
     const { rr, data } = await mlJson(endpoint.toString(), session.access_token)
 
@@ -293,6 +295,12 @@ export default async function handler(req: any, res: any) {
       paging: data.paging || {},
       products,
       source_mode: 'catalog_products_with_marketplace_offers',
+      offset,
+      next_offset: offset + catalogProducts.length,
+      has_more:
+        catalogProducts.length === limit &&
+        (Number(data?.paging?.total || 0) === 0 ||
+          offset + catalogProducts.length < Number(data?.paging?.total || 0)),
     })
   } catch (err: any) {
     const message = String(err?.message || err || 'Falha desconhecida.')
