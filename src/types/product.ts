@@ -187,6 +187,7 @@ export interface HunterSearchFilters {
   estimated_commission_rate?: number
   marketplace?: string
   limit?: number
+  offset?: number
   ml_token?: string
 }
 
@@ -197,6 +198,9 @@ export interface HunterSearchResult {
   message?: string
   total_found: number
   products: DiscoveredProductRecord[]
+  offset?: number
+  next_offset?: number
+  has_more?: boolean
 }
 
 export interface HunterWhyAiPickedResult {
