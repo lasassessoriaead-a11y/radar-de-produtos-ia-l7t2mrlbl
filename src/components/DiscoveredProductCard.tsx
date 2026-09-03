@@ -56,6 +56,10 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
     product.promo_price && product.promo_price < product.price && product.promo_price > 0
   const isHot = product.opportunity_level === 'hot'
   const isGood = product.opportunity_level === 'good'
+  const offersTotal = Number((product.raw_data as any)?.offers_total || 0)
+  const hasRealPrice = Number(price) > 0
+  const hasRealSales = Number(product.sales_count || 0) > 0
+  const hasRealRating = Number(product.rating || 0) > 0
 
   // Potential level text
   const potentialLabel =
@@ -146,12 +150,35 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
             Transparência das Métricas
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Preço / Vendas / Avaliação:</span>
-            <span className="inline-flex items-center gap-1 text-[#00E676] bg-[#00E676]/10 px-1.5 py-0.5 rounded border border-[#00E676]/30">
-              <ShieldCheck className="w-2.5 h-2.5" />
-              Dado Real (ML)
-            </span>
+          <div className="grid grid-cols-1 gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Preço:</span>
+              <span className={cn(
+                'inline-flex items-center gap-1 px-1.5 py-0.5 rounded border',
+                hasRealPrice
+                  ? 'text-[#00E676] bg-[#00E676]/10 border-[#00E676]/30'
+                  : 'text-gray-400 bg-gray-800/50 border-gray-700',
+              )}>
+                <ShieldCheck className="w-2.5 h-2.5" />
+                {hasRealPrice ? 'Dado Real (ML)' : 'Indisponível'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Vendas:</span>
+              <span className="text-gray-300">
+                {hasRealSales ? `${product.sales_count} informadas pela API` : 'Não informado pela API'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Avaliação:</span>
+              <span className="text-gray-300">
+                {hasRealRating ? product.rating.toFixed(1) : 'Não informada pela API'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-400">Ofertas / Concorrentes:</span>
+              <span className="text-[#FFD600]">{offersTotal > 0 ? offersTotal : 'Não informado'}</span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -199,18 +226,29 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
             </div>
 
             <div className="border-l border-[#1E2130] pl-2.5">
-              <span className="text-[10px] text-gray-400 font-medium block">Validação</span>
-              <div className="flex items-center gap-2 text-xs font-mono mt-0.5">
-                <span className="flex items-center gap-0.5 text-[#FFD600] font-bold">
-                  <Star className="w-3 h-3 fill-[#FFD600]" />
-                  {product.rating > 0 ? product.rating.toFixed(1) : '4.5'}
+              <span className="text-[10px] text-gray-400 font-medium block">Mercado</span>
+              <div className="flex flex-col gap-0.5 text-[11px] font-mono mt-0.5">
+                <span className="text-[#FFD600]">
+                  {offersTotal > 0 ? `${offersTotal} ofertas` : 'Ofertas não informadas'}
                 </span>
-                <span className="text-gray-400 text-[11px]">
-                  {product.sales_count > 0 ? `${product.sales_count} vendas` : 'Recente'}
+                <span className="text-gray-400">
+                  {hasRealSales ? `${product.sales_count} vendas` : 'Vendas não informadas'}
                 </span>
               </div>
             </div>
           </div>
+
+          {product.product_url && (
+            <a
+              href={product.product_url}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full h-8 inline-flex items-center justify-center rounded-md border border-[#00F2FF]/35 bg-[#00F2FF]/5 text-[#00F2FF] hover:bg-[#00F2FF]/10 text-xs font-semibold gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Ver no Mercado Livre
+            </a>
+          )}
 
           {/* Quick AI Why Picked Button */}
           <Button
