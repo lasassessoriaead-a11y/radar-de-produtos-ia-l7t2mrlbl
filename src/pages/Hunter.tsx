@@ -71,7 +71,10 @@ export default function HunterPage() {
   const [minRating, setMinRating] = useState<number | ''>('')
   const [estimatedCommissionRate, setEstimatedCommissionRate] = useState<number | ''>('')
   const [marketplace, setMarketplace] = useState('Mercado Livre')
-  const [limit, setLimit] = useState(15)
+  const [limit, setLimit] = useState(30)
+  const [nextOffset, setNextOffset] = useState(0)
+  const [hasMoreResults, setHasMoreResults] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   // Natural Language Intent Mode ("Encontre para mim")
   const [naturalPrompt, setNaturalPrompt] = useState('')
@@ -182,6 +185,7 @@ export default function HunterPage() {
           typeof estimatedCommissionRate === 'number' ? estimatedCommissionRate : undefined,
         marketplace,
         limit,
+        offset: 0,
         ...overrideFilters,
       }
 
@@ -201,6 +205,8 @@ export default function HunterPage() {
         setSearchResults([])
       } else {
         setSearchResults(res.products || [])
+        setNextOffset(res.next_offset || (res.products?.length || 0))
+        setHasMoreResults(Boolean(res.has_more))
         toast.success(`${res.total_found} produtos encontrados no Mercado Livre!`)
         // Refresh pending products list
         loadInitialData()
@@ -210,6 +216,46 @@ export default function HunterPage() {
       toast.error(err.message || 'Falha ao buscar produtos.')
     } finally {
       setSearching(false)
+    }
+  }
+
+  const handleLoadMore = async () => {
+    if (!hasMoreResults || loadingMore) return
+    setLoadingMore(true)
+
+    try {
+      const filters: HunterSearchFilters = {
+        query,
+        category,
+        min_price: typeof minPrice === 'number' ? minPrice : undefined,
+        max_price: typeof maxPrice === 'number' ? maxPrice : undefined,
+        min_sales: typeof minSales === 'number' ? minSales : undefined,
+        min_rating: typeof minRating === 'number' ? minRating : undefined,
+        estimated_commission_rate:
+          typeof estimatedCommissionRate === 'number' ? estimatedCommissionRate : undefined,
+        marketplace,
+        limit,
+        offset: nextOffset,
+      }
+
+      const res = await hunterService.searchMarketplace(filters)
+      if (!res.success) {
+        toast.error(res.message || 'Não foi possível carregar mais produtos.')
+        return
+      }
+
+      setSearchResults((prev) => {
+        const seen = new Set(prev.map((p) => p.external_id || p.id))
+        const extra = (res.products || []).filter((p) => !seen.has(p.external_id || p.id))
+        return [...prev, ...extra]
+      })
+      setNextOffset(res.next_offset || nextOffset + (res.products?.length || 0))
+      setHasMoreResults(Boolean(res.has_more))
+      toast.success(`${res.products?.length || 0} produtos adicionais carregados.`)
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao carregar mais produtos.')
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -607,7 +653,7 @@ export default function HunterPage() {
                 </h3>
               </div>
               <span className="text-[10px] font-mono text-gray-400">
-                Parâmetros aplicados sobre a API do Mercado Livre
+                30 por página • carregamento progressivo pela API do Mercado Livre
               </span>
             </div>
 
@@ -742,7 +788,7 @@ export default function HunterPage() {
                   <option value={10}>10 produtos</option>
                   <option value={15}>15 produtos</option>
                   <option value={20}>20 produtos</option>
-                  <option value={30}>30 produtos</option>
+                  <option value={30}>30 produtos (recomendado)</option>
                 </select>
               </div>
             </div>
@@ -874,7 +920,7 @@ export default function HunterPage() {
               </h3>
               {searchResults.length > 0 && (
                 <span className="text-xs font-mono text-gray-400">
-                  Ordenado por Score de Oportunidade
+                  ${searchResults.length} carregados • Ordenado por relevância e oportunidade
                 </span>
               )}
             </div>
@@ -916,6 +962,29 @@ export default function HunterPage() {
                     isDiscarding={discardingIds.has(product.id)}
                   />
                 ))}
+              </div>
+            )}
+
+            {searchResults.length > 0 && hasMoreResults && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="h-10 px-6 rounded-xl bg-[#1A1E2D] border border-[#00F2FF]/35 text-[#00F2FF] hover:bg-[#00F2FF]/10 font-bold text-xs gap-2"
+                >
+                  {loadingMore ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Carregando mais...
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="w-3.5 h-3.5" />
+                      Carregar mais 30 produtos
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
