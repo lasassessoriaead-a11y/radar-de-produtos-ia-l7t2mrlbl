@@ -4,18 +4,14 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
 
-function opportunityScore(item: any) {
-  const price = Number(item.price || 0)
-  const sold = Number(item.sold_quantity || 0)
-  const hasDiscount = Number(item.original_price || 0) > price && price > 0
-  const freeShipping = Boolean(item.shipping?.free_shipping)
-  let score = 42
-  if (price >= 30 && price <= 350) score += 12
-  if (sold >= 50) score += 8
-  if (sold >= 250) score += 7
-  if (sold >= 1000) score += 6
-  if (hasDiscount) score += 8
-  if (freeShipping) score += 6
+function opportunityScore(price: number, competitors: number) {
+  let score = 48
+  if (price >= 30 && price <= 350) score += 14
+  else if (price > 350 && price <= 1000) score += 8
+  if (competitors > 0 && competitors <= 5) score += 18
+  else if (competitors <= 15) score += 12
+  else if (competitors <= 40) score += 6
+  else if (competitors > 80) score -= 8
   return clamp(score, 0, 96)
 }
 
@@ -24,6 +20,33 @@ function level(score: number) {
   if (score >= 65) return 'good'
   if (score >= 50) return 'test'
   return 'low'
+}
+
+async function mlJson(url: string, token: string) {
+  const rr = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'User-Agent': 'RadarIA/1.0',
+    },
+  })
+  const text = await rr.text()
+  let data: any = {}
+  try {
+    data = text ? JSON.parse(text) : {}
+  } catch {
+    data = { raw: text.slice(0, 500) }
+  }
+  return { rr, data }
+}
+
+function productImage(product: any) {
+  const pic =
+    product?.pictures?.[0]?.secure_url ||
+    product?.pictures?.[0]?.url ||
+    product?.thumbnail ||
+    ''
+  return String(pic).replace(/^http:/, 'https:')
 }
 
 export default async function handler(req: any, res: any) {
@@ -54,7 +77,7 @@ export default async function handler(req: any, res: any) {
     phase = 'request_parse'
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const q = String(body.query || '').trim()
-    const limit = clamp(Number(body.limit || 20), 1, 50)
+    const limit = clamp(Number(body.limit || 20), 1, 30)
 
     if (!q) {
       return res.status(200).json({
@@ -67,55 +90,20 @@ export default async function handler(req: any, res: any) {
       })
     }
 
-    phase = 'mercadolivre_search'
-    const endpoint = new URL('https://api.mercadolibre.com/sites/MLB/search')
+    // The old /sites/MLB/search?q=... marketplace-wide text search is not
+    // available to this app. Mercado Livre officially supports keyword
+    // discovery through the catalog product search endpoint.
+    phase = 'catalog_search'
+    const endpoint = new URL('https://api.mercadolibre.com/products/search')
+    endpoint.searchParams.set('status', 'active')
+    endpoint.searchParams.set('site_id', 'MLB')
     endpoint.searchParams.set('q', q)
     endpoint.searchParams.set('limit', String(limit))
 
-    if (Number(body.min_price) > 0 || Number(body.max_price) > 0) {
-      const min = Number(body.min_price || 0)
-      const max = Number(body.max_price || 0)
-      endpoint.searchParams.set('price', `${min || '*'}-${max || '*'}`)
-    }
-
-    const rr = await fetch(endpoint.toString(), {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        Accept: 'application/json',
-        'User-Agent': 'RadarIA/1.0',
-      },
-    })
-
-    const rawText = await rr.text()
-    let data: any = {}
-    try {
-      data = rawText ? JSON.parse(rawText) : {}
-    } catch {
-      data = { raw: rawText.slice(0, 500) }
-    }
+    const { rr, data } = await mlJson(endpoint.toString(), session.access_token)
 
     if (!rr.ok) {
       const mlMessage = String(data?.message || data?.error || data?.raw || '')
-
-      // Mercado Livre can restrict the legacy site-wide textual search for an app.
-      // Do not pretend there is another official endpoint that provides the same
-      // marketplace-wide catalogue. Return the real upstream restriction clearly.
-      if (rr.status === 403) {
-        return res.status(200).json({
-          success: false,
-          marketplace: 'Mercado Livre',
-          status: 'search_restricted',
-          message:
-            'Sua conta está conectada, mas o Mercado Livre não liberou a busca geral de produtos para este aplicativo. A conexão OAuth está válida; é necessário habilitar esse recurso no aplicativo do Mercado Livre para usar o Caçador com catálogo real.',
-          api_status: rr.status,
-          api_error: data?.error || null,
-          upstream_message: mlMessage || null,
-          phase,
-          total_found: 0,
-          products: [],
-        })
-      }
-
       return res.status(200).json({
         success: false,
         marketplace: 'Mercado Livre',
@@ -132,67 +120,100 @@ export default async function handler(req: any, res: any) {
       })
     }
 
-    phase = 'map_results'
-    const raw = Array.isArray(data.results) ? data.results : []
-    const products = raw
-      .map((item: any) => {
-        const score = opportunityScore(item)
-        const price = Number(item.price || 0)
-        const original = Number(item.original_price || 0)
-        const image = String(item.secure_thumbnail || item.thumbnail || '').replace(/^http:/, 'https:')
+    const catalogProducts = Array.isArray(data.results) ? data.results.slice(0, limit) : []
+
+    phase = 'catalog_offers'
+    const enriched = await Promise.all(
+      catalogProducts.map(async (product: any) => {
+        const productId = String(product?.id || '')
+        if (!productId) return null
+
+        const offersUrl = new URL(
+          `https://api.mercadolibre.com/products/${encodeURIComponent(productId)}/items`
+        )
+        offersUrl.searchParams.set('limit', '100')
+
+        const offersResponse = await mlJson(offersUrl.toString(), session.access_token)
+        const offers = offersResponse.rr.ok && Array.isArray(offersResponse.data?.results)
+          ? offersResponse.data.results
+          : []
+
+        const validOffers = offers
+          .filter((x: any) => Number(x?.price) > 0)
+          .sort((a: any, b: any) => Number(a.price) - Number(b.price))
+
+        const best = validOffers[0] || null
+        const price = Number(best?.price || 0)
+        const competitors = Number(
+          offersResponse.data?.paging?.total ?? validOffers.length ?? 0
+        )
+        const score = opportunityScore(price, competitors)
+
+        const firstOfferId = String(best?.item_id || '')
+        const url = firstOfferId
+          ? `https://produto.mercadolivre.com.br/MLB-${firstOfferId.replace(/^MLB/, '')}`
+          : ''
+
         return {
-          id: `ml_${item.id}`,
-          collectionId: 'mercadolivre_live',
-          collectionName: 'mercadolivre_live',
-          external_id: String(item.id || ''),
+          id: `ml_catalog_${productId}`,
+          collectionId: 'mercadolivre_catalog',
+          collectionName: 'mercadolivre_catalog',
+          external_id: productId,
           platform: 'Mercado Livre',
-          title: String(item.title || ''),
-          image_url: image,
-          category: String(item.category_id || 'Mercado Livre'),
-          niche: String(item.domain_id || ''),
-          price: original > price ? original : price,
+          title: String(product?.name || product?.title || ''),
+          image_url: productImage(product),
+          category: String(best?.category_id || product?.domain_id || 'Mercado Livre'),
+          niche: String(product?.domain_id || ''),
+          price,
           promo_price: price,
           commission_rate: 0,
           commission_amount: 0,
           commission_is_estimated: false,
-          sales_count: Number(item.sold_quantity || 0),
+          sales_count: 0,
           reviews_count: 0,
           rating: 0,
-          seller: String(item.seller?.nickname || ''),
-          product_url: String(item.permalink || ''),
+          seller: '',
+          product_url: url,
           affiliate_url: '',
-          competition_level: 0,
+          competition_level: competitors,
           trends_score: 0,
           demand_score: 0,
           opportunity_score: score,
           opportunity_level: level(score),
           status: 'pending',
-          source: 'mercadolivre_api',
+          source: 'mercadolivre_catalog_api',
           raw_data: {
-            seller_id: item.seller?.id || null,
-            category_id: item.category_id || null,
-            domain_id: item.domain_id || null,
-            listing_type_id: item.listing_type_id || null,
-            free_shipping: Boolean(item.shipping?.free_shipping),
-            official_store_id: item.official_store_id || null,
-            currency_id: item.currency_id || 'BRL',
+            catalog_product_id: productId,
+            domain_id: product?.domain_id || null,
+            catalog_status: product?.status || null,
+            listing_strategy: product?.settings?.listing_strategy || null,
+            offers_total: competitors,
+            best_offer_item_id: firstOfferId || null,
+            currency_id: best?.currency_id || 'BRL',
           },
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
         }
       })
-      .filter((x: any) => x.title && x.product_url && x.promo_price > 0)
-      .filter((x: any) => !Number(body.min_sales) || x.sales_count >= Number(body.min_sales))
+    )
+
+    phase = 'map_results'
+    const products = enriched
+      .filter(Boolean)
+      .filter((x: any) => x.title)
+      .filter((x: any) => !Number(body.min_price) || x.promo_price >= Number(body.min_price))
+      .filter((x: any) => !Number(body.max_price) || x.promo_price <= Number(body.max_price))
       .sort((a: any, b: any) => b.opportunity_score - a.opportunity_score)
 
     return res.status(200).json({
       success: true,
       marketplace: 'Mercado Livre',
       status: 'ok',
-      message: `${products.length} produtos reais encontrados pela API oficial.`,
+      message: `${products.length} produtos reais encontrados no catálogo oficial do Mercado Livre.`,
       total_found: products.length,
       paging: data.paging || {},
       products,
+      source_mode: 'catalog_products_with_marketplace_offers',
     })
   } catch (err: any) {
     const message = String(err?.message || err || 'Falha desconhecida.')
