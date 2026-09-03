@@ -262,7 +262,7 @@ export default function HunterPage() {
   const handleApprove = async (product: DiscoveredProductRecord) => {
     setApprovingIds((prev) => new Set(prev).add(product.id))
     try {
-      if (product.source === 'mercadolivre_api') {
+      if (product.source === 'mercadolivre_api' || product.source === 'mercadolivre_catalog_api') {
         await hunterService.importMercadoLivreProduct(product)
       } else {
         await hunterService.approveProduct(product.id)
