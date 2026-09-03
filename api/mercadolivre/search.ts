@@ -4,7 +4,40 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
 }
 
-function opportunityScore(price: number, competitors: number) {
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function relevanceScore(query: string, title: string, domain: string) {
+  const q = normalizeText(query).trim()
+  const t = normalizeText(title)
+  const d = normalizeText(domain)
+  const tokens = q.split(/\s+/).filter((x) => x.length >= 2)
+
+  let score = 35
+  const covered = tokens.filter((token) => t.includes(token)).length
+  if (tokens.length) score += Math.round((covered / tokens.length) * 35)
+  if (t.includes(q)) score += 12
+
+  // Ambiguous Brazilian search "secador" normally means hair dryer.
+  // Prioritize hair-dryer domains/titles unless the user explicitly asks
+  // for hands/clothes/food drying.
+  if (
+    q === 'secador' ||
+    (q.includes('secador') &&
+      !/(mao|maos|roupa|roupas|alimento|alimentos|unha|unhas)/.test(q))
+  ) {
+    if (/hair_dryers|secador.*cabelo|cabelo.*secador|hair dryer/.test(d + ' ' + t)) score += 30
+    if (/hand_dryers|drying_racks|secador.*mao|secador.*roupa|roupa.*secador/.test(d + ' ' + t)) score -= 35
+  }
+
+  return clamp(score, 0, 100)
+}
+
+function opportunityScore(price: number, competitors: number, relevance = 60) {
   let score = 48
   if (price >= 30 && price <= 350) score += 14
   else if (price > 350 && price <= 1000) score += 8
@@ -12,6 +45,10 @@ function opportunityScore(price: number, competitors: number) {
   else if (competitors <= 15) score += 12
   else if (competitors <= 40) score += 6
   else if (competitors > 80) score -= 8
+
+  // Relevance is part of the opportunity: a strong product outside the
+  // user's intent should not outrank a closely matching product.
+  score += Math.round((relevance - 60) * 0.35)
   return clamp(score, 0, 96)
 }
 
@@ -158,9 +195,24 @@ export default async function handler(req: any, res: any) {
         const competitors = Number(
           offersResponse.data?.paging?.total ?? validOffers.length ?? 0
         )
-        const score = opportunityScore(price, competitors)
+        const title = String(item?.title || product?.name || product?.title || '')
+        const domainId = String(product?.domain_id || '')
+        const relevance = relevanceScore(q, title, domainId)
+        const score = opportunityScore(price, competitors, relevance)
         const url = String(item?.permalink || '')
-        const seller = String(item?.seller?.nickname || '')
+
+        let seller = String(item?.seller?.nickname || '')
+        const sellerId = item?.seller_id || item?.seller?.id || best?.seller_id || best?.seller?.id
+        if (!seller && sellerId) {
+          const sellerResponse = await mlJson(
+            `https://api.mercadolibre.com/users/${encodeURIComponent(String(sellerId))}`,
+            session.access_token
+          )
+          if (sellerResponse.rr.ok) {
+            seller = String(sellerResponse.data?.nickname || '')
+          }
+        }
+
         const image =
           String(
             item?.pictures?.[0]?.secure_url ||
@@ -175,7 +227,7 @@ export default async function handler(req: any, res: any) {
           collectionName: 'mercadolivre_catalog',
           external_id: productId,
           platform: 'Mercado Livre',
-          title: String(item?.title || product?.name || product?.title || ''),
+          title,
           image_url: image,
           category: String(best?.category_id || product?.domain_id || 'Mercado Livre'),
           niche: String(product?.domain_id || ''),
@@ -200,13 +252,16 @@ export default async function handler(req: any, res: any) {
           raw_data: {
             catalog_product_id: productId,
             domain_id: product?.domain_id || null,
+            relevance_score: relevance,
             catalog_status: product?.status || null,
             listing_strategy: product?.settings?.listing_strategy || null,
             offers_total: competitors,
             best_offer_item_id: firstOfferId || null,
-            offers_total: competitors,
             sold_quantity_available: soldQuantity > 0,
             rating_available: false,
+            seller_id: sellerId || null,
+            condition: item?.condition || null,
+            free_shipping: Boolean(item?.shipping?.free_shipping),
             currency_id: item?.currency_id || best?.currency_id || 'BRL',
           },
           created: new Date().toISOString(),
@@ -221,7 +276,13 @@ export default async function handler(req: any, res: any) {
       .filter((x: any) => x.title)
       .filter((x: any) => !Number(body.min_price) || x.promo_price >= Number(body.min_price))
       .filter((x: any) => !Number(body.max_price) || x.promo_price <= Number(body.max_price))
-      .sort((a: any, b: any) => b.opportunity_score - a.opportunity_score)
+      .filter((x: any) => Number(x.raw_data?.relevance_score || 0) >= 30)
+      .sort((a: any, b: any) => {
+        const relevanceDiff =
+          Number(b.raw_data?.relevance_score || 0) - Number(a.raw_data?.relevance_score || 0)
+        if (Math.abs(relevanceDiff) >= 10) return relevanceDiff
+        return b.opportunity_score - a.opportunity_score
+      })
 
     return res.status(200).json({
       success: true,
