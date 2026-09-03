@@ -143,16 +143,31 @@ export default async function handler(req: any, res: any) {
           .sort((a: any, b: any) => Number(a.price) - Number(b.price))
 
         const best = validOffers[0] || null
-        const price = Number(best?.price || 0)
+        const firstOfferId = String(best?.item_id || '')
+
+        let item: any = null
+        if (firstOfferId) {
+          const detailResponse = await mlJson(
+            `https://api.mercadolibre.com/items/${encodeURIComponent(firstOfferId)}`,
+            session.access_token
+          )
+          if (detailResponse.rr.ok) item = detailResponse.data
+        }
+
+        const price = Number(item?.price || best?.price || 0)
         const competitors = Number(
           offersResponse.data?.paging?.total ?? validOffers.length ?? 0
         )
         const score = opportunityScore(price, competitors)
-
-        const firstOfferId = String(best?.item_id || '')
-        const url = firstOfferId
-          ? `https://produto.mercadolivre.com.br/MLB-${firstOfferId.replace(/^MLB/, '')}`
-          : ''
+        const url = String(item?.permalink || '')
+        const seller = String(item?.seller?.nickname || '')
+        const image =
+          String(
+            item?.pictures?.[0]?.secure_url ||
+              item?.pictures?.[0]?.url ||
+              productImage(product)
+          ).replace(/^http:/, 'https:')
+        const soldQuantity = Number(item?.sold_quantity || 0)
 
         return {
           id: `ml_catalog_${productId}`,
@@ -160,8 +175,8 @@ export default async function handler(req: any, res: any) {
           collectionName: 'mercadolivre_catalog',
           external_id: productId,
           platform: 'Mercado Livre',
-          title: String(product?.name || product?.title || ''),
-          image_url: productImage(product),
+          title: String(item?.title || product?.name || product?.title || ''),
+          image_url: image,
           category: String(best?.category_id || product?.domain_id || 'Mercado Livre'),
           niche: String(product?.domain_id || ''),
           price,
@@ -169,10 +184,10 @@ export default async function handler(req: any, res: any) {
           commission_rate: 0,
           commission_amount: 0,
           commission_is_estimated: false,
-          sales_count: 0,
+          sales_count: soldQuantity,
           reviews_count: 0,
           rating: 0,
-          seller: '',
+          seller,
           product_url: url,
           affiliate_url: '',
           competition_level: competitors,
@@ -189,7 +204,10 @@ export default async function handler(req: any, res: any) {
             listing_strategy: product?.settings?.listing_strategy || null,
             offers_total: competitors,
             best_offer_item_id: firstOfferId || null,
-            currency_id: best?.currency_id || 'BRL',
+            offers_total: competitors,
+            sold_quantity_available: soldQuantity > 0,
+            rating_available: false,
+            currency_id: item?.currency_id || best?.currency_id || 'BRL',
           },
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
