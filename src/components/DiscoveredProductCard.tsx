@@ -163,19 +163,19 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
                   : 'text-gray-400 bg-gray-800/50 border-gray-700',
               )}>
                 <ShieldCheck className="w-2.5 h-2.5" />
-                {hasRealPrice ? 'Dado Real (ML)' : 'Indisponível'}
+                {hasRealPrice ? 'Dado Real (ML)' : 'Sem oferta ativa com preço'}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Vendas:</span>
               <span className="text-gray-300">
-                {hasRealSales ? `${product.sales_count} informadas pela API` : 'Não informado pela API'}
+                {hasRealSales ? `${product.sales_count} informadas pela API` : 'Não informado neste endpoint'}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-400">Avaliação:</span>
               <span className="text-gray-300">
-                {hasRealRating ? product.rating.toFixed(1) : 'Não informada pela API'}
+                {hasRealRating ? product.rating.toFixed(1) : 'Não informada neste endpoint'}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -219,7 +219,7 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
             ) : (
               <span className="inline-flex items-center gap-1 text-gray-400 bg-gray-800/50 px-1.5 py-0.5 rounded border border-gray-700">
                 <AlertCircle className="w-2.5 h-2.5 text-gray-400" />
-                Indisponível na API ML
+                Não fornecida pela API de catálogo
               </span>
             )}
           </div>
