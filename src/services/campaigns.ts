@@ -3,6 +3,8 @@ import type { CampaignRecord, CampaignVariation, GenerateFullCampaignResponse, C
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 const bearer = () => ({ Authorization: `Bearer ${pb.authStore.token}` })
+const sleep = (ms:number) => new Promise((resolve)=>setTimeout(resolve,ms))
+const normalizeCampaign = (c:any) => ({...c,created:c?.created||c?.created_at||'',updated:c?.updated||c?.updated_at||''}) as CampaignRecord
 
 export const campaignService = {
   async generateFullCampaign(productData: any): Promise<GenerateFullCampaignResponse> {
@@ -36,8 +38,22 @@ export const campaignService = {
     return{success:true,campaign_id:campaignId,message:tracked?'Campanha salva com link Shopee rastreável.':'Campanha salva com sucesso.',tracking_link:tracked?.short_link,sub_ids:tracked?.sub_ids}
   },
 
-  async getCampaigns(filter?:string,sort='-created',page=1,perPage=50){try{const res=await fetch('/api/campaigns',{headers:bearer()});const p=await res.json();const items=p.items||[];return{items,totalItems:items.length,totalPages:Math.max(1,Math.ceil(items.length/perPage))}}catch{return{items:[],totalItems:0,totalPages:0}}},
-  async getCampaignById(id:string):Promise<CampaignRecord|null>{try{const res=await fetch(`/api/campaigns?id=${encodeURIComponent(id)}`,{headers:bearer()});const p=await res.json();return p.items?.[0]||null}catch{return null}},
-  async deleteCampaign(id:string):Promise<boolean>{try{await pb.collection('campaigns').delete(id);return true}catch(e){throw e}},
+  async getCampaigns(filter?:string,sort='-created',page=1,perPage=50){
+    let lastError='Erro ao carregar campanhas'
+    for(let attempt=0;attempt<3;attempt++){
+      if(!pb.authStore.token){await sleep(350);continue}
+      try{
+        const res=await fetch(`/api/campaigns?_=${Date.now()}`,{headers:bearer(),cache:'no-store'})
+        const p=await res.json().catch(()=>({}))
+        if(!res.ok){lastError=p?.error||`Erro HTTP ${res.status}`;if(res.status===401){await sleep(500);continue}throw new Error(lastError)}
+        let items=(Array.isArray(p?.items)?p.items:[]).map(normalizeCampaign)
+        if(filter){const m=filter.match(/status\s*=\s*["']([^"']+)["']/i);if(m)items=items.filter((c:any)=>c.status===m[1])}
+        return{items,totalItems:items.length,totalPages:Math.max(1,Math.ceil(items.length/perPage))}
+      }catch(e:any){lastError=e?.message||lastError;if(attempt<2)await sleep(400)}
+    }
+    throw new Error(lastError)
+  },
+  async getCampaignById(id:string):Promise<CampaignRecord|null>{const res=await fetch(`/api/campaigns?id=${encodeURIComponent(id)}&_=${Date.now()}`,{headers:bearer(),cache:'no-store'});const p=await res.json().catch(()=>({}));if(!res.ok)throw new Error(p?.error||'Erro ao carregar campanha');return p.items?.[0]?normalizeCampaign(p.items[0]):null},
+  async deleteCampaign(id:string):Promise<boolean>{const res=await fetch(`/api/campaigns?id=${encodeURIComponent(id)}`,{method:'DELETE',headers:bearer()});const p=await res.json().catch(()=>({}));if(!res.ok)throw new Error(p?.error||'Erro ao excluir campanha');return true},
   async getProductCampaignStats(productId?:string,discoveredId?:string):Promise<{count:number;best_score:number}>{if(!productId&&!discoveredId)return{count:0,best_score:0};try{const params=new URLSearchParams();if(productId)params.set('product_id',productId);if(discoveredId)params.set('discovered_id',discoveredId);const res=await fetch(`${BASE_URL}/backend/v1/campaigns/stats-by-product?${params}`,{headers:bearer()});if(!res.ok)return{count:0,best_score:0};return await res.json()}catch{return{count:0,best_score:0}}},
 }
