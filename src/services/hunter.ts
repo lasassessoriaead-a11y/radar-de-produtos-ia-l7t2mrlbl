@@ -23,7 +23,8 @@ export const hunterService = {
   async searchMarketplace(filters: HunterSearchFilters): Promise<HunterSearchResult> {
     const isMercadoLivre = !filters.marketplace || filters.marketplace === 'Mercado Livre'
     const isShopee = filters.marketplace === 'Shopee'
-    const url = isMercadoLivre ? '/api/mercadolivre/search' : isShopee ? '/api/shopee/search' : `${BASE_URL}/backend/v1/hunter/search`
+    const isTikTok = filters.marketplace === 'TikTok Shop'
+    const url = isMercadoLivre ? '/api/mercadolivre/search' : isShopee ? '/api/shopee/search' : isTikTok ? '/api/tiktok/search' : `${BASE_URL}/backend/v1/hunter/search`
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify(filters) })
     const raw = await res.text(); let data: any = {}
     try { data = raw ? JSON.parse(raw) : {} } catch { data = { message: raw || `Resposta inválida do servidor (HTTP ${res.status}).` } }
