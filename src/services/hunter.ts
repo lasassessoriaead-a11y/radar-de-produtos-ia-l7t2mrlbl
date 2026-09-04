@@ -33,6 +33,7 @@ export const hunterService = {
 
   async importMercadoLivreProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/mercadolivre/import', product, 'Não foi possível adicionar o produto ao Radar.') },
   async importShopeeProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/shopee/import', product, 'Não foi possível adicionar o produto Shopee ao Radar.') },
+  async importTikTokShopProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/tiktok/import', product, 'Não foi possível adicionar o produto TikTok Shop ao Radar.') },
 
   async findForMe(prompt: string): Promise<InterpretedFiltersResult> {
     const fallback = (): InterpretedFiltersResult => {
@@ -62,7 +63,7 @@ export const hunterService = {
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao aprovar produto para o Radar') }
     return await res.json()
   },
-  async discardProduct(discoveredId: string) { const res = await fetch(`${BASE_URL}/backend/v1/hunter/discard`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`}, body:JSON.stringify({id:discoveredId}) }); if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Erro ao descartar produto')} return await res.json() },
+  async discardProduct(discoveredId: string) { const res=await fetch(`${BASE_URL}/backend/v1/hunter/discard`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`}, body:JSON.stringify({id:discoveredId}) }); if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Erro ao descartar produto')} return await res.json() },
   async getDiscoveredProducts(status: 'pending' | 'approved' | 'discarded' | 'all' = 'pending', limit = 50) { const filter=status==='all'?'':`status = '${status}'`; const res=await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1,limit,{filter,sort:'-opportunity_score,-created'}); return res.items },
   async getTopOpportunitiesToday(limit = 5) { const res=await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1,limit,{sort:'-opportunity_score'}); return res.items },
 }
