@@ -6,6 +6,8 @@ function clean(data: any) {
   return out
 }
 
+const num = (v:any) => Number(v || 0)
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store')
   try {
@@ -29,7 +31,28 @@ export default async function handler(req: any, res: any) {
       const rr=await fetch(`${url}/rest/v1/campaigns?${q}user_id=eq.${encodeURIComponent(user.id)}&select=*&order=created_at.desc`,{headers})
       const rows=await rr.json().catch(()=>[])
       if(!rr.ok)return res.status(rr.status).json({error:rows?.message||'Falha ao carregar campanhas.'})
-      return res.status(200).json({success:true,items:Array.isArray(rows)?rows:[]})
+      const items = Array.isArray(rows) ? rows : []
+      if (items.length) {
+        const ids = items.map((c:any)=>c.id).filter(Boolean)
+        if (ids.length) {
+          const cr = await fetch(`${url}/rest/v1/conversions?user_id=eq.${encodeURIComponent(user.id)}&campaign_id=in.(${ids.join(',')})&source_type=eq.shopee_affiliate_api&select=campaign_id,sale_amount,commission_amount,status,attribution_confidence`, { headers })
+          const conversions = await cr.json().catch(()=>[])
+          if (cr.ok && Array.isArray(conversions)) {
+            const metrics = new Map<string,any>()
+            for (const c of conversions) {
+              const m = metrics.get(c.campaign_id) || { conversions:0, completed:0, sales:0, commission:0, attributed:0 }
+              m.conversions++
+              if (String(c.status).toLowerCase()==='completed') m.completed++
+              m.sales += num(c.sale_amount)
+              m.commission += num(c.commission_amount)
+              if (String(c.attribution_confidence).toLowerCase()==='high') m.attributed++
+              metrics.set(c.campaign_id,m)
+            }
+            for (const campaign of items) campaign.shopee_metrics = metrics.get(campaign.id) || { conversions:0, completed:0, sales:0, commission:0, attributed:0 }
+          }
+        }
+      }
+      return res.status(200).json({success:true,items})
     }
     return res.status(405).json({error:'Method not allowed'})
   } catch(err:any){return res.status(401).json({error:err?.message||'Falha na campanha.'})}
