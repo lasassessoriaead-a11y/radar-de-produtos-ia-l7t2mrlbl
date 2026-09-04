@@ -57,6 +57,7 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
   const isShopee = product.platform === 'Shopee' || product.source === 'shopee_affiliate_api'
   const sourceShort = isShopee ? 'Shopee' : 'ML'
   const marketplaceName = isShopee ? 'Shopee' : 'Mercado Livre'
+  const marketplaceLinkLabel = isShopee ? 'Ver na Shopee' : 'Ver no Mercado Livre'
 
   const potentialLabel =
     product.opportunity_score >= 80
@@ -170,7 +171,7 @@ export const DiscoveredProductCard: React.FC<DiscoveredProductCardProps> = ({
 
           {product.product_url && (
             <a href={product.product_url} target="_blank" rel="noreferrer" className="w-full h-8 inline-flex items-center justify-center rounded-md border border-[#00F2FF]/35 bg-[#00F2FF]/5 text-[#00F2FF] hover:bg-[#00F2FF]/10 text-xs font-semibold gap-1.5">
-              <ExternalLink className="w-3.5 h-3.5" />Ver na {marketplaceName}
+              <ExternalLink className="w-3.5 h-3.5" />{marketplaceLinkLabel}
             </a>
           )}
 
