@@ -18,12 +18,7 @@ export const askAiAnalyst = async (question: string, productId?: string) => {
 }
 
 export const productsService = {
-  async getProducts(
-    filter = '',
-    sort = '-opportunity_score',
-    page = 1,
-    perPage = 100,
-  ): Promise<{ items: ProductRecord[]; totalItems: number }> {
+  async getProducts(filter = '', sort = '-opportunity_score', page = 1, perPage = 100): Promise<{ items: ProductRecord[]; totalItems: number }> {
     const params = new URLSearchParams({ sort, page: String(page), perPage: String(perPage) })
     const res = await fetch(`/api/products?${params.toString()}`, { headers: authHeaders() })
     const data = await res.json().catch(() => ({}))
@@ -38,18 +33,26 @@ export const productsService = {
     return data.product as ProductRecord
   },
 
+  async createShopeeTrackingLink(productId: string, channel = 'radar') {
+    const res = await fetch('/api/shopee/tracking-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ product_id: productId, channel }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data?.success) throw new Error(data?.error || 'Não foi possível gerar o link rastreável da Shopee')
+    return data as { success: boolean; short_link: string; sub_ids: string[]; tracking_link: any; message: string }
+  },
+
   async createProduct(data: Partial<ProductRecord>): Promise<ProductRecord> {
     return await pb.collection<ProductRecord>('products').create(data)
   },
-
   async updateProduct(id: string, data: Partial<ProductRecord>): Promise<ProductRecord> {
     return await pb.collection<ProductRecord>('products').update(id, data)
   },
-
   async deleteProduct(id: string): Promise<boolean> {
     return await pb.collection('products').delete(id)
   },
-
   async batchCreateProducts(items: Array<Partial<ProductRecord>>): Promise<{ created: number; errors: number }> {
     let created = 0
     let errors = 0
@@ -68,7 +71,6 @@ export const aiService = {
       return records.items[0] || null
     } catch { return null }
   },
-
   async generateRecommendations(): Promise<{ recommendation_text: string; top_picks: Array<{ id?: string; title: string; score: number; reason: string }> }> {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ai-recommendations`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
@@ -76,7 +78,6 @@ export const aiService = {
     if (!res.ok) throw new Error(`Falha ao gerar recomendações: ${res.status}`)
     return await res.json()
   },
-
   async askAnalyst(question: string, productId?: string, conversationId?: string | null): Promise<{ answer: string; conversation_id: string }> {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`}/backend/v1/radar/ask-analyst`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
