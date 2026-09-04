@@ -3,9 +3,15 @@ import { requireSupabaseUser } from '../../server/mercadolivre.js'
 
 const ENDPOINT = 'https://open-api.affiliate.shopee.com.br/graphql'
 
-function cleanTag(value: any, fallback: string) {
-  const s = String(value || fallback).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-  return (s || fallback).slice(0, 48)
+// Shopee is stricter than our internal tags. Keep Sub IDs compact and
+// alphanumeric only so campaign UUIDs / separators never reach the API.
+function cleanSubId(value: any, fallback: string) {
+  const normalized = String(value || fallback)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+  return (normalized || fallback.replace(/[^a-z0-9]/gi, '').toLowerCase() || 'radar').slice(0, 24)
 }
 
 async function shopeeGraphql(query: string) {
@@ -50,15 +56,18 @@ export default async function handler(req: any, res: any) {
     if (!pr.ok || !product) return res.status(404).json({ error: 'Produto não encontrado no Radar.' })
     if (String(product.platform || '').toLowerCase() !== 'shopee') return res.status(400).json({ error: 'Sub IDs da Shopee só podem ser gerados para produtos Shopee.' })
 
+    // Prefer the original product URL. A previously generated affiliate short URL
+    // remains only as a fallback and is never rewritten in the product record.
     const originUrl = String(product.product_url || product.affiliate_url || '').trim()
     if (!originUrl) return res.status(400).json({ error: 'Produto sem URL da Shopee.' })
 
     const externalId = String(product.metadata?.external_id || productId.slice(0, 8))
-    const channel = cleanTag(body.channel, 'radar')
-    const campaignTag = body.campaign_id ? `c-${String(body.campaign_id).slice(0, 8)}` : 'c-manual'
-    const variationTag = body.variation_id ? `v-${cleanTag(body.variation_id, 'base')}` : 'v-base'
-    const creativeTag = body.creative_id ? `cr-${String(body.creative_id).slice(0, 8)}` : 'cr-base'
-    const subIds = [cleanTag(`p-${externalId}`, 'p-radar'), cleanTag(campaignTag, 'c-manual'), channel, cleanTag(variationTag, 'v-base'), cleanTag(creativeTag, 'cr-base')]
+    const channel = cleanSubId(body.channel, 'radar')
+    const campaignTag = cleanSubId(body.campaign_id ? `c${String(body.campaign_id).slice(0, 12)}` : 'cmanual', 'cmanual')
+    const variationTag = cleanSubId(body.variation_id ? `v${String(body.variation_id).slice(0, 12)}` : 'vbase', 'vbase')
+    const creativeTag = cleanSubId(body.creative_id ? `cr${String(body.creative_id).slice(0, 12)}` : 'crbase', 'crbase')
+    const productTag = cleanSubId(`p${externalId}`, 'pradar')
+    const subIds = [productTag, campaignTag, channel, variationTag, creativeTag]
 
     const mutation = `mutation { generateShortLink(input: { originUrl: ${JSON.stringify(originUrl)}, subIds: [${subIds.map((s) => JSON.stringify(s)).join(', ')}] }) { shortLink } }`
     const data = await shopeeGraphql(mutation)
