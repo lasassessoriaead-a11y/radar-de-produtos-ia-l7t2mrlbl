@@ -10,40 +10,29 @@ import type {
   ProductRecord,
 } from '@/types/product'
 
-const BASE_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
+
+async function importOfficialProduct(url: string, product: DiscoveredProductRecord, fallback: string) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify(product) })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data?.success) throw new Error(data?.error || fallback)
+  return data as { success: boolean; message: string; product: ProductRecord }
+}
 
 export const hunterService = {
   async searchMarketplace(filters: HunterSearchFilters): Promise<HunterSearchResult> {
     const isMercadoLivre = !filters.marketplace || filters.marketplace === 'Mercado Livre'
     const isShopee = filters.marketplace === 'Shopee'
-    const url = isMercadoLivre
-      ? '/api/mercadolivre/search'
-      : isShopee
-        ? '/api/shopee/search'
-        : `${BASE_URL}/backend/v1/hunter/search`
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
-      body: JSON.stringify(filters),
-    })
-    const raw = await res.text()
-    let data: any = {}
+    const url = isMercadoLivre ? '/api/mercadolivre/search' : isShopee ? '/api/shopee/search' : `${BASE_URL}/backend/v1/hunter/search`
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify(filters) })
+    const raw = await res.text(); let data: any = {}
     try { data = raw ? JSON.parse(raw) : {} } catch { data = { message: raw || `Resposta inválida do servidor (HTTP ${res.status}).` } }
     if (!res.ok) throw new Error(data.message || data.error || `Erro ao buscar produtos (${res.status})`)
     return data as HunterSearchResult
   },
 
-  async importMercadoLivreProduct(product: DiscoveredProductRecord): Promise<{ success: boolean; message: string; product: ProductRecord }> {
-    const res = await fetch('/api/mercadolivre/import', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify(product),
-    })
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok || !data?.success) throw new Error(data?.error || 'Não foi possível adicionar o produto ao Radar.')
-    return data
-  },
+  async importMercadoLivreProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/mercadolivre/import', product, 'Não foi possível adicionar o produto ao Radar.') },
+  async importShopeeProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/shopee/import', product, 'Não foi possível adicionar o produto Shopee ao Radar.') },
 
   async findForMe(prompt: string): Promise<InterpretedFiltersResult> {
     const fallback = (): InterpretedFiltersResult => {
@@ -68,41 +57,18 @@ export const hunterService = {
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao carregar análise detalhada da IA') }
     return await res.json()
   },
-
   async approveProduct(discoveredId: string): Promise<{ success: boolean; message: string; product: ProductRecord }> {
     const res = await fetch(`${BASE_URL}/backend/v1/hunter/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify({ id: discoveredId }) })
     if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao aprovar produto para o Radar') }
     return await res.json()
   },
-
-  async discardProduct(discoveredId: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`${BASE_URL}/backend/v1/hunter/discard`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify({ id: discoveredId }) })
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao descartar produto') }
-    return await res.json()
-  },
-
-  async getDiscoveredProducts(status: 'pending' | 'approved' | 'discarded' | 'all' = 'pending', limit = 50): Promise<DiscoveredProductRecord[]> {
-    const filter = status === 'all' ? '' : `status = '${status}'`
-    const res = await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1, limit, { filter, sort: '-opportunity_score,-created' })
-    return res.items
-  },
-  async getTopOpportunitiesToday(limit = 5): Promise<DiscoveredProductRecord[]> {
-    const res = await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1, limit, { sort: '-opportunity_score' }); return res.items
-  },
+  async discardProduct(discoveredId: string) { const res = await fetch(`${BASE_URL}/backend/v1/hunter/discard`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`}, body:JSON.stringify({id:discoveredId}) }); if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Erro ao descartar produto')} return await res.json() },
+  async getDiscoveredProducts(status: 'pending' | 'approved' | 'discarded' | 'all' = 'pending', limit = 50) { const filter=status==='all'?'':`status = '${status}'`; const res=await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1,limit,{filter,sort:'-opportunity_score,-created'}); return res.items },
+  async getTopOpportunitiesToday(limit = 5) { const res=await pb.collection<DiscoveredProductRecord>('discovered_products').getList(1,limit,{sort:'-opportunity_score'}); return res.items },
 }
 
 export const watchlistService = {
-  async getWatchlist(): Promise<WatchlistItemRecord[]> {
-    const res = await fetch(`${BASE_URL}/backend/v1/watchlist/items`, { headers: { Authorization: `Bearer ${pb.authStore.token}` } })
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao carregar itens da Watchlist') }
-    const data = await res.json(); return data.items || []
-  },
-  async toggleWatchlist(item: { external_id: string; platform?: string; title: string; image_url?: string; product_url?: string; category?: string; price?: number; commission_rate?: number; commission_amount?: number; sales_count?: number; rating?: number; opportunity_score?: number; discovered_id?: string; product_id?: string }): Promise<{ success: boolean; action: 'added' | 'removed'; message: string }> {
-    const res = await fetch(`${BASE_URL}/backend/v1/watchlist/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` }, body: JSON.stringify(item) })
-    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || 'Erro ao atualizar Watchlist') }
-    return await res.json()
-  },
-  async getSnapshots(externalId: string): Promise<ProductSnapshotRecord[]> {
-    const res = await pb.collection<ProductSnapshotRecord>('product_snapshots').getList(1, 20, { filter: `external_id = '${externalId}'`, sort: '-created' }); return res.items
-  },
+  async getWatchlist(): Promise<WatchlistItemRecord[]> { const res=await fetch(`${BASE_URL}/backend/v1/watchlist/items`,{headers:{Authorization:`Bearer ${pb.authStore.token}`}}); if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Erro ao carregar itens da Watchlist')} const data=await res.json(); return data.items||[] },
+  async toggleWatchlist(item: { external_id:string; platform?:string; title:string; image_url?:string; product_url?:string; category?:string; price?:number; commission_rate?:number; commission_amount?:number; sales_count?:number; rating?:number; opportunity_score?:number; discovered_id?:string; product_id?:string }) { const res=await fetch(`${BASE_URL}/backend/v1/watchlist/toggle`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`},body:JSON.stringify(item)}); if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'Erro ao atualizar Watchlist')} return await res.json() },
+  async getSnapshots(externalId:string) { const res=await pb.collection<ProductSnapshotRecord>('product_snapshots').getList(1,20,{filter:`external_id = '${externalId}'`,sort:'-created'}); return res.items },
 }
