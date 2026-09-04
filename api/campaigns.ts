@@ -34,19 +34,22 @@ export default async function handler(req: any, res: any) {
       if (items.length) {
         const ids = items.map((c:any)=>c.id).filter(Boolean)
         if (ids.length) {
-          const cr = await fetch(`${url}/rest/v1/conversions?user_id=eq.${encodeURIComponent(user.id)}&campaign_id=in.(${ids.join(',')})&source_type=eq.shopee_affiliate_api&select=campaign_id,sale_amount,commission_amount,status,attribution_confidence`, { headers,cache:'no-store' })
+          const cr = await fetch(`${url}/rest/v1/conversions?user_id=eq.${encodeURIComponent(user.id)}&campaign_id=in.(${ids.join(',')})&source_type=eq.shopee_affiliate_api&select=campaign_id,sale_amount,commission_amount,estimated_commission_amount,validated_commission_amount,commission_validation_status,status,attribution_confidence`, { headers,cache:'no-store' })
           const conversions = await cr.json().catch(()=>[])
           if (cr.ok && Array.isArray(conversions)) {
             const metrics = new Map<string,any>()
             for (const c of conversions) {
-              const m = metrics.get(c.campaign_id) || { conversions:0, completed:0, sales:0, commission:0, attributed:0 }
+              const m = metrics.get(c.campaign_id) || { conversions:0, completed:0, sales:0, commission:0, estimated_commission:0, validated_commission:0, validated_conversions:0, attributed:0 }
               m.conversions++
               if (String(c.status).toLowerCase()==='completed') m.completed++
-              m.sales += num(c.sale_amount);m.commission += num(c.commission_amount)
+              m.sales += num(c.sale_amount)
+              m.commission += num(c.commission_amount)
+              m.estimated_commission += num(c.estimated_commission_amount ?? c.commission_amount)
+              if (String(c.commission_validation_status).toLowerCase()==='validated') { m.validated_commission += num(c.validated_commission_amount ?? c.commission_amount); m.validated_conversions++ }
               if (String(c.attribution_confidence).toLowerCase()==='high') m.attributed++
               metrics.set(c.campaign_id,m)
             }
-            for (const campaign of items) campaign.shopee_metrics = metrics.get(campaign.id) || { conversions:0, completed:0, sales:0, commission:0, attributed:0 }
+            for (const campaign of items) campaign.shopee_metrics = metrics.get(campaign.id) || { conversions:0, completed:0, sales:0, commission:0, estimated_commission:0, validated_commission:0, validated_conversions:0, attributed:0 }
           }
         }
       }
