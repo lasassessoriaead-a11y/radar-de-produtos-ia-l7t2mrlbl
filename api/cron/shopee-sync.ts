@@ -25,12 +25,20 @@ async function edgeCall(oidc:string,body:any){
   return data
 }
 
+function getRuntimeOidc(req:any){
+  const header=String(req.headers?.['x-vercel-oidc-token']||req.headers?.get?.('x-vercel-oidc-token')||'').trim()
+  const env=String(process.env.VERCEL_OIDC_TOKEN||'').trim()
+  return header||env
+}
+
 export default async function handler(req:any,res:any){
   res.setHeader('Cache-Control','no-store')
   if(req.method!=='GET') return res.status(405).json({error:'Method not allowed'})
   try{
-    const oidc=String(process.env.VERCEL_OIDC_TOKEN||'').trim()
-    if(!oidc) throw new Error('VERCEL_OIDC_TOKEN não disponível no runtime.')
+    // At runtime Vercel provides OIDC primarily through x-vercel-oidc-token.
+    // VERCEL_OIDC_TOKEN is retained only as a local/build fallback.
+    const oidc=getRuntimeOidc(req)
+    if(!oidc) throw new Error('Vercel OIDC token não disponível no runtime. Verifique Secure Backend Access/OIDC no projeto.')
 
     const runId=crypto.randomUUID()
     const claim=await edgeCall(oidc,{mode:'claim',run_id:runId})
