@@ -1,0 +1,58 @@
+import crypto from 'node:crypto'
+
+const SHOPEE_ENDPOINT='https://open-api.affiliate.shopee.com.br/graphql'
+const SUPABASE_URL=String(process.env.SUPABASE_URL||'https://nqepcuktmbnjecjlemmh.supabase.co').replace(/\/$/,'')
+const INGEST_URL=`${SUPABASE_URL}/functions/v1/shopee-cron-ingest`
+
+const num=(v:any)=>{const n=Number(String(v??'').replace(',','.'));return Number.isFinite(n)?n:0}
+const clamp=(n:number,min:number,max:number)=>Math.max(min,Math.min(max,n))
+const pct=(v:any)=>{const n=num(v);return n>0&&n<=1?n*100:n}
+const normalize=(v:string)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()
+
+async function shopeeGraphql(query:string,variables:Record<string,any>){
+ const appId=String(process.env.SHOPEE_AFFILIATE_APP_ID||'').trim(),secret=String(process.env.SHOPEE_AFFILIATE_SECRET||'').trim()
+ if(!appId||!secret)throw new Error('Credenciais Shopee ausentes.')
+ const payload=JSON.stringify({query,variables}),timestamp=Math.floor(Date.now()/1000).toString()
+ const signature=crypto.createHash('sha256').update(`${appId}${timestamp}${payload}${secret}`,'utf8').digest('hex')
+ const r=await fetch(SHOPEE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json',Authorization:`SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${signature}`},body:payload})
+ const data=await r.json().catch(()=>({}))
+ if(!r.ok)throw new Error(data?.message||`Shopee HTTP ${r.status}`)
+ if(data?.errors?.length)throw new Error(data.errors[0]?.extensions?.message||data.errors[0]?.message||'Erro Shopee')
+ return data?.data||{}
+}
+
+async function edgeCall(oidc:string,body:any){
+ const r=await fetch(INGEST_URL,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${oidc}`},body:JSON.stringify(body)})
+ const data=await r.json().catch(()=>({}))
+ if(!r.ok)throw new Error(data?.error||`Supabase Edge HTTP ${r.status}`)
+ return data
+}
+
+function getOidc(req:any){return String(req.headers?.['x-vercel-oidc-token']||req.headers?.get?.('x-vercel-oidc-token')||process.env.VERCEL_OIDC_TOKEN||'').trim()}
+function baseScore(sales:number,rating:number,commissionRate:number,price:number){let s=25;if(sales>=10000)s+=20;else if(sales>=1000)s+=16;else if(sales>=100)s+=10;else if(sales>0)s+=4;if(rating>=4.8)s+=12;else if(rating>=4.5)s+=9;else if(rating>=4)s+=5;if(commissionRate>=10)s+=16;else if(commissionRate>=5)s+=11;else if(commissionRate>0)s+=5;if(price>=20&&price<=500)s+=6;return clamp(s,0,98)}
+
+export default async function handler(req:any,res:any){
+ res.setHeader('Cache-Control','no-store')
+ if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'})
+ try{
+  const oidc=getOidc(req);if(!oidc)throw new Error('Vercel OIDC token não disponível no runtime.')
+  const runId=crypto.randomUUID()
+  const claim=await edgeCall(oidc,{mode:'hunter_claim',run_id:runId})
+  if(!claim?.allowed)return res.status(200).json({success:true,skipped:true,reason:'cooldown_or_running',run_id:runId})
+  const profileResult=await edgeCall(oidc,{mode:'hunter_profiles',run_id:runId})
+  const profiles=Array.isArray(profileResult?.profiles)?profileResult.profiles:[]
+  const candidates:any[]=[]
+  const gql=`query HunterProactive($keyword:String!,$limit:Int!){productOfferV2(keyword:$keyword,listType:0,sortType:1,page:1,limit:$limit){nodes{itemId productName productLink offerLink imageUrl priceMin priceMax sales ratingStar commissionRate commission shopId shopName}}}`
+  for(const profile of profiles){
+   const keyword=String(profile.niche_key||'').replace(/[_-]+/g,' ').trim()
+   if(!keyword)continue
+   const data=await shopeeGraphql(gql,{keyword,limit:20})
+   const nodes=Array.isArray(data?.productOfferV2?.nodes)?data.productOfferV2.nodes:[]
+   const confidence=num(profile.confidence_score),nicheBoost=clamp(Math.round(confidence/7),0,15)
+   const scored=nodes.map((p:any)=>{const price=num(p.priceMin||p.priceMax),sales=num(p.sales),rating=num(p.ratingStar),commissionRate=pct(p.commissionRate),base=baseScore(sales,rating,commissionRate,price),final=clamp(base+nicheBoost,0,99);return{user_id:profile.user_id,niche_key:profile.niche_key,search_query:keyword,external_id:String(p.itemId||''),title:String(p.productName||''),image_url:String(p.imageUrl||'').replace(/^http:/,'https:'),product_url:String(p.productLink||''),affiliate_url:String(p.offerLink||''),price,commission_rate:commissionRate,commission_amount:num(p.commission),sales_count:sales,rating,base_score:base,niche_confidence:confidence,proactive_score:final,reason:{mode:'winning_niche_proactive_v1',niche_key:profile.niche_key,completed_conversions:num(profile.completed_conversions),validated_commission_amount:num(profile.validated_commission_amount),top_channel:profile.top_channel||null,top_sub_id:profile.top_sub_id||null,top_campaign_id:profile.top_campaign_id||null,niche_boost:nicheBoost,keyword_match:normalize(p.productName||'').includes(normalize(keyword))}}}).filter((x:any)=>x.external_id&&x.title&&x.proactive_score>=55).sort((a:any,b:any)=>b.proactive_score-a.proactive_score).slice(0,10)
+   candidates.push(...scored)
+  }
+  const result=await edgeCall(oidc,{mode:'hunter_ingest',run_id:runId,candidates})
+  return res.status(200).json({...result,profiles:profiles.length,candidates:candidates.length,run_id:runId,run_at:new Date().toISOString()})
+ }catch(e:any){console.error('cron hunter-proactive',e);return res.status(500).json({error:e?.message||'Falha no Hunter Proativo.'})}
+}
