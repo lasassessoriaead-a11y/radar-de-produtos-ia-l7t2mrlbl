@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { requireSupabaseUser } from '../../server/mercadolivre'
+import { hunterLearnedBoost, loadHunterLearningProfile } from '../../server/hunter-learning'
 
 const ENDPOINT = 'https://open-api.affiliate.shopee.com.br/graphql'
 
@@ -7,7 +8,6 @@ function clamp(n: number, min: number, max: number) { return Math.max(min, Math.
 function num(value: any) { const n = Number(String(value ?? '').replace(',', '.')); return Number.isFinite(n) ? n : 0 }
 function ratePercent(value: any) { const n = num(value); return n > 0 && n <= 1 ? n * 100 : n }
 function normalize(value: string) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() }
-function tokens(value: string) { return normalize(value).split(' ').filter(x => x.length >= 4) }
 
 const HAIR_ACCESSORY_TERMS = [
   'spray', 'protetor', 'protecao termica', 'termoprotetor', 'creme', 'oleo', 'serum',
@@ -79,57 +79,6 @@ function opportunityScore(sales: number, rating: number, commissionRate: number,
 }
 function level(score: number) { if (score >= 80) return 'hot'; if (score >= 65) return 'good'; if (score >= 50) return 'test'; return 'low' }
 
-type LearnedProduct = {
-  title: string
-  category: string
-  completed: number
-  pending: number
-  cancelled: number
-  commission: number
-  validatedCommission: number
-  grossSales: number
-}
-
-async function loadLearningProfile(session: { user: any; auth: string; url: string; key: string }): Promise<LearnedProduct[]> {
-  const select = encodeURIComponent('title,category,metadata')
-  const r = await fetch(`${session.url}/rest/v1/products?user_id=eq.${encodeURIComponent(session.user.id)}&platform=eq.Shopee&is_test_data=eq.false&select=${select}`, {
-    headers: { apikey: session.key, Authorization: session.auth },
-  })
-  const rows = await r.json().catch(() => [])
-  if (!r.ok || !Array.isArray(rows)) return []
-  return rows.map((row: any) => {
-    const p = row?.metadata?.performance_learning || {}
-    return {
-      title: String(row?.title || ''),
-      category: String(row?.category || ''),
-      completed: num(p.completed_conversions),
-      pending: num(p.pending_conversions),
-      cancelled: num(p.cancelled_conversions),
-      commission: num(p.commission_amount),
-      validatedCommission: num(p.validated_commission_amount),
-      grossSales: num(p.gross_sales_amount),
-    }
-  }).filter((x: LearnedProduct) => x.completed > 0 || x.pending > 0 || x.cancelled > 0 || x.commission > 0 || x.validatedCommission > 0 || x.grossSales > 0)
-}
-
-function learnedBoost(candidateTitle: string, candidateCategory: string, history: LearnedProduct[]) {
-  const cTokens = new Set(tokens(candidateTitle))
-  let best = 0
-  let matchedTitle = ''
-  let evidence = 0
-  for (const item of history) {
-    const hTokens = tokens(item.title)
-    if (!hTokens.length || !cTokens.size) continue
-    const shared = hTokens.filter(t => cTokens.has(t)).length
-    const similarity = shared / Math.max(1, Math.min(hTokens.length, cTokens.size))
-    const categoryMatch = normalize(candidateCategory) && normalize(candidateCategory) === normalize(item.category)
-    const performance = clamp(item.completed * 4 + item.pending * 1.5 + Math.min(6, item.validatedCommission / 20) + Math.min(5, item.grossSales / 200) - item.cancelled * 2, -5, 15)
-    const boost = clamp(Math.round((similarity * 10) + (categoryMatch ? 2 : 0) + performance), -5, 18)
-    if (boost > best) { best = boost; matchedTitle = item.title; evidence = item.completed + item.pending + item.cancelled }
-  }
-  return { boost: best, matchedTitle, evidence }
-}
-
 async function shopeeGraphql(query: string, variables: Record<string, any>) {
   const appId = String(process.env.SHOPEE_AFFILIATE_APP_ID || '').trim()
   const secret = String(process.env.SHOPEE_AFFILIATE_SECRET || '').trim()
@@ -148,17 +97,22 @@ export default async function handler(req:any,res:any) {
   if(req.method!=='POST') return res.status(405).json({success:false,message:'Use POST.'})
   try {
     const session = await requireSupabaseUser(req)
-    const learningProfile = await loadLearningProfile(session)
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
+    const learningProfile = await loadHunterLearningProfile(session)
+    const learningContext = {
+      channel: String(body.channel || body.primary_channel || '').trim() || undefined,
+      subId: String(body.sub_id || body.subId || '').trim() || undefined,
+      campaignId: String(body.campaign_id || body.campaignId || '').trim() || undefined,
+    }
     const keyword=String(body.query||'').trim(), limit=clamp(Number(body.limit||30),1,100), page=Math.max(1,Number(body.page||(Number(body.offset||0)/limit+1)||1))
     if(!keyword) return res.status(200).json({success:false,status:'invalid_query',message:'Informe um produto para buscar.',total_found:0,products:[]})
     const query=`query RadarShopeeProducts($keyword: String!, $page: Int!, $limit: Int!) { productOfferV2(keyword: $keyword, listType: 0, sortType: 1, page: $page, limit: $limit) { nodes { itemId productName productLink offerLink imageUrl priceMin priceMax priceDiscountRate sales ratingStar commissionRate sellerCommissionRate shopeeCommissionRate commission shopId shopName shopType periodStartTime periodEndTime } pageInfo { page limit hasNextPage } } }`
     const data=await shopeeGraphql(query,{keyword,page,limit}), result=data?.productOfferV2||{}, nodes=Array.isArray(result?.nodes)?result.nodes:[]
     let products=nodes.map((p:any)=>{
       const title=String(p.productName||''), price=num(p.priceMin||p.priceMax), sales=num(p.sales), rating=num(p.ratingStar), commissionRate=ratePercent(p.commissionRate), commission=num(p.commission), relevance=intentFitScore(keyword,title), baseScore=opportunityScore(sales,rating,commissionRate,price,relevance)
-      const learning = learnedBoost(title, 'Shopee', learningProfile)
+      const learning = hunterLearnedBoost(title, 'Shopee', keyword, commissionRate, learningProfile, learningContext)
       const score = clamp(baseScore + learning.boost, 0, 99)
-      return { id:`shopee_${p.shopId||'shop'}_${p.itemId}`,collectionId:'shopee_affiliate',collectionName:'shopee_affiliate',external_id:String(p.itemId||''),platform:'Shopee',title,image_url:String(p.imageUrl||'').replace(/^http:/,'https:'),category:'Shopee',niche:'',price,promo_price:price,commission_rate:commissionRate,commission_amount:commission,commission_is_estimated:false,sales_count:sales,reviews_count:0,rating,seller:String(p.shopName||''),product_url:String(p.productLink||''),affiliate_url:String(p.offerLink||''),competition_level:0,trends_score:0,demand_score:sales,opportunity_score:score,opportunity_level:level(score),status:'pending',source:'shopee_affiliate_api',raw_data:{relevance_score:relevance,intent_match:isHairDryerSearch(keyword)?isHairDryerCandidate(title):true,base_opportunity_score:baseScore,learning_boost:learning.boost,learning_match_title:learning.matchedTitle||null,learning_evidence:learning.evidence,learning_profile_size:learningProfile.length,shop_id:p.shopId||null,shop_type:p.shopType||null,price_max:num(p.priceMax),discount_rate:num(p.priceDiscountRate),seller_commission_rate:ratePercent(p.sellerCommissionRate),shopee_commission_rate:ratePercent(p.shopeeCommissionRate),period_start_time:p.periodStartTime||null,period_end_time:p.periodEndTime||null,data_source:'Shopee Affiliate Open API'},created:new Date().toISOString(),updated:new Date().toISOString() }
+      return { id:`shopee_${p.shopId||'shop'}_${p.itemId}`,collectionId:'shopee_affiliate',collectionName:'shopee_affiliate',external_id:String(p.itemId||''),platform:'Shopee',title,image_url:String(p.imageUrl||'').replace(/^http:/,'https:'),category:'Shopee',niche:keyword,price,promo_price:price,commission_rate:commissionRate,commission_amount:commission,commission_is_estimated:false,sales_count:sales,reviews_count:0,rating,seller:String(p.shopName||''),product_url:String(p.productLink||''),affiliate_url:String(p.offerLink||''),competition_level:0,trends_score:0,demand_score:sales,opportunity_score:score,opportunity_level:level(score),status:'pending',source:'shopee_affiliate_api',raw_data:{relevance_score:relevance,intent_match:isHairDryerSearch(keyword)?isHairDryerCandidate(title):true,base_opportunity_score:baseScore,learning_boost:learning.boost,learning_match_title:learning.matchedTitle||null,learning_evidence:learning.evidence,learning_profile_size:learningProfile.length,learning_reasons:learning.reasons,learning_top_channel:learning.topChannel||null,learning_top_sub_id:learning.topSubId||null,learning_top_campaign_id:learning.topCampaignId||null,learning_context:learningContext,shop_id:p.shopId||null,shop_type:p.shopType||null,price_max:num(p.priceMax),discount_rate:num(p.priceDiscountRate),seller_commission_rate:ratePercent(p.sellerCommissionRate),shopee_commission_rate:ratePercent(p.shopeeCommissionRate),period_start_time:p.periodStartTime||null,period_end_time:p.periodEndTime||null,data_source:'Shopee Affiliate Open API'},created:new Date().toISOString(),updated:new Date().toISOString() }
     })
     if(Number(body.min_price)) products=products.filter((p:any)=>p.price>=Number(body.min_price)); if(Number(body.max_price)) products=products.filter((p:any)=>p.price<=Number(body.max_price)); if(Number(body.min_sales)) products=products.filter((p:any)=>p.sales_count>=Number(body.min_sales)); if(Number(body.min_rating)) products=products.filter((p:any)=>p.rating>=Number(body.min_rating)); if(Number(body.estimated_commission_rate)) products=products.filter((p:any)=>p.commission_rate>=Number(body.estimated_commission_rate))
 
@@ -168,6 +122,6 @@ export default async function handler(req:any,res:any) {
 
     products.sort((a:any,b:any)=>{ const rd=Number(b.raw_data?.relevance_score||0)-Number(a.raw_data?.relevance_score||0); if(Math.abs(rd)>=5)return rd; const ld=Number(b.raw_data?.learning_boost||0)-Number(a.raw_data?.learning_boost||0); if(ld!==0)return ld; return b.opportunity_score-a.opportunity_score })
     const pageInfo=result?.pageInfo||{}
-    return res.status(200).json({success:true,marketplace:'Shopee',status:'ok',message:`${products.length} produtos relevantes encontrados pela Shopee Affiliate Open API.`,total_found:products.length,products,page,offset:(page-1)*limit,next_offset:page*limit,has_more:Boolean(pageInfo?.hasNextPage),page_info:pageInfo,source_mode:'shopee_affiliate_open_api',learning:{enabled:true,history_products:learningProfile.length,mode:'observed_conversion_similarity_v1'}})
+    return res.status(200).json({success:true,marketplace:'Shopee',status:'ok',message:`${products.length} produtos relevantes encontrados pela Shopee Affiliate Open API.`,total_found:products.length,products,page,offset:(page-1)*limit,next_offset:page*limit,has_more:Boolean(pageInfo?.hasNextPage),page_info:pageInfo,source_mode:'shopee_affiliate_open_api',learning:{enabled:true,history_products:learningProfile.length,mode:'observed_conversion_similarity_v2',context:learningContext}})
   } catch(err:any) { return res.status(200).json({success:false,marketplace:'Shopee',status:'api_error',total_found:0,products:[],message:String(err?.message||err)}) }
 }
