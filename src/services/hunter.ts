@@ -32,6 +32,13 @@ export const hunterService = {
     return data as HunterSearchResult
   },
 
+  async getProactiveOpportunities(limit = 12) {
+    const res = await fetch(`/api/hunter/proactive?limit=${Math.max(1, Math.min(50, limit))}`, { headers: { Authorization: `Bearer ${pb.authStore.token}` } })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data?.success) throw new Error(data?.error || 'Erro ao carregar oportunidades proativas.')
+    return Array.isArray(data.items) ? data.items : []
+  },
+
   async importMercadoLivreProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/mercadolivre/import', product, 'Não foi possível adicionar o produto ao Radar.') },
   async importShopeeProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/shopee/import', product, 'Não foi possível adicionar o produto Shopee ao Radar.') },
   async importTikTokShopProduct(product: DiscoveredProductRecord) { return importOfficialProduct('/api/tiktok/import', product, 'Não foi possível adicionar o produto TikTok Shop ao Radar.') },
