@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import { requireSupabaseUser } from '../../server/mercadolivre'
-import { hunterLearnedBoost, loadHunterLearningProfile } from '../../server/hunter-learning'
+import { hunterLearnedBoost, hunterNicheBoost, loadHunterLearningProfile, loadHunterNicheProfile } from '../../server/hunter-learning'
 
 const ENDPOINT = 'https://open-api.affiliate.shopee.com.br/graphql'
 
@@ -98,7 +98,10 @@ export default async function handler(req:any,res:any) {
   try {
     const session = await requireSupabaseUser(req)
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{})
-    const learningProfile = await loadHunterLearningProfile(session)
+    const [learningProfile, nicheProfile] = await Promise.all([
+      loadHunterLearningProfile(session),
+      loadHunterNicheProfile(session),
+    ])
     const learningContext = {
       channel: String(body.channel || body.primary_channel || '').trim() || undefined,
       subId: String(body.sub_id || body.subId || '').trim() || undefined,
@@ -111,8 +114,9 @@ export default async function handler(req:any,res:any) {
     let products=nodes.map((p:any)=>{
       const title=String(p.productName||''), price=num(p.priceMin||p.priceMax), sales=num(p.sales), rating=num(p.ratingStar), commissionRate=ratePercent(p.commissionRate), commission=num(p.commission), relevance=intentFitScore(keyword,title), baseScore=opportunityScore(sales,rating,commissionRate,price,relevance)
       const learning = hunterLearnedBoost(title, 'Shopee', keyword, commissionRate, learningProfile, learningContext)
-      const score = clamp(baseScore + learning.boost, 0, 99)
-      return { id:`shopee_${p.shopId||'shop'}_${p.itemId}`,collectionId:'shopee_affiliate',collectionName:'shopee_affiliate',external_id:String(p.itemId||''),platform:'Shopee',title,image_url:String(p.imageUrl||'').replace(/^http:/,'https:'),category:'Shopee',niche:keyword,price,promo_price:price,commission_rate:commissionRate,commission_amount:commission,commission_is_estimated:false,sales_count:sales,reviews_count:0,rating,seller:String(p.shopName||''),product_url:String(p.productLink||''),affiliate_url:String(p.offerLink||''),competition_level:0,trends_score:0,demand_score:sales,opportunity_score:score,opportunity_level:level(score),status:'pending',source:'shopee_affiliate_api',raw_data:{relevance_score:relevance,intent_match:isHairDryerSearch(keyword)?isHairDryerCandidate(title):true,base_opportunity_score:baseScore,learning_boost:learning.boost,learning_match_title:learning.matchedTitle||null,learning_evidence:learning.evidence,learning_profile_size:learningProfile.length,learning_reasons:learning.reasons,learning_top_channel:learning.topChannel||null,learning_top_sub_id:learning.topSubId||null,learning_top_campaign_id:learning.topCampaignId||null,learning_context:learningContext,shop_id:p.shopId||null,shop_type:p.shopType||null,price_max:num(p.priceMax),discount_rate:num(p.priceDiscountRate),seller_commission_rate:ratePercent(p.sellerCommissionRate),shopee_commission_rate:ratePercent(p.shopeeCommissionRate),period_start_time:p.periodStartTime||null,period_end_time:p.periodEndTime||null,data_source:'Shopee Affiliate Open API'},created:new Date().toISOString(),updated:new Date().toISOString() }
+      const nicheLearning = hunterNicheBoost(title, keyword, 'Shopee', nicheProfile, learningContext)
+      const score = clamp(baseScore + learning.boost + nicheLearning.boost, 0, 99)
+      return { id:`shopee_${p.shopId||'shop'}_${p.itemId}`,collectionId:'shopee_affiliate',collectionName:'shopee_affiliate',external_id:String(p.itemId||''),platform:'Shopee',title,image_url:String(p.imageUrl||'').replace(/^http:/,'https:'),category:'Shopee',niche:keyword,price,promo_price:price,commission_rate:commissionRate,commission_amount:commission,commission_is_estimated:false,sales_count:sales,reviews_count:0,rating,seller:String(p.shopName||''),product_url:String(p.productLink||''),affiliate_url:String(p.offerLink||''),competition_level:0,trends_score:0,demand_score:sales,opportunity_score:score,opportunity_level:level(score),status:'pending',source:'shopee_affiliate_api',raw_data:{relevance_score:relevance,intent_match:isHairDryerSearch(keyword)?isHairDryerCandidate(title):true,base_opportunity_score:baseScore,learning_boost:learning.boost,niche_learning_boost:nicheLearning.boost,niche_learning_key:nicheLearning.nicheKey,niche_learning_evidence:nicheLearning.evidence,niche_learning_confidence:nicheLearning.confidence,niche_learning_reasons:nicheLearning.reasons,learning_match_title:learning.matchedTitle||null,learning_evidence:learning.evidence,learning_profile_size:learningProfile.length,niche_profile_size:nicheProfile.length,learning_reasons:learning.reasons,learning_top_channel:learning.topChannel||nicheLearning.topChannel||null,learning_top_sub_id:learning.topSubId||nicheLearning.topSubId||null,learning_top_campaign_id:learning.topCampaignId||nicheLearning.topCampaignId||null,learning_context:learningContext,shop_id:p.shopId||null,shop_type:p.shopType||null,price_max:num(p.priceMax),discount_rate:num(p.priceDiscountRate),seller_commission_rate:ratePercent(p.sellerCommissionRate),shopee_commission_rate:ratePercent(p.shopeeCommissionRate),period_start_time:p.periodStartTime||null,period_end_time:p.periodEndTime||null,data_source:'Shopee Affiliate Open API'},created:new Date().toISOString(),updated:new Date().toISOString() }
     })
     if(Number(body.min_price)) products=products.filter((p:any)=>p.price>=Number(body.min_price)); if(Number(body.max_price)) products=products.filter((p:any)=>p.price<=Number(body.max_price)); if(Number(body.min_sales)) products=products.filter((p:any)=>p.sales_count>=Number(body.min_sales)); if(Number(body.min_rating)) products=products.filter((p:any)=>p.rating>=Number(body.min_rating)); if(Number(body.estimated_commission_rate)) products=products.filter((p:any)=>p.commission_rate>=Number(body.estimated_commission_rate))
 
@@ -120,8 +124,8 @@ export default async function handler(req:any,res:any) {
       products = products.filter((p:any) => p.raw_data?.intent_match === true && Number(p.raw_data?.relevance_score || 0) >= 50)
     }
 
-    products.sort((a:any,b:any)=>{ const rd=Number(b.raw_data?.relevance_score||0)-Number(a.raw_data?.relevance_score||0); if(Math.abs(rd)>=5)return rd; const ld=Number(b.raw_data?.learning_boost||0)-Number(a.raw_data?.learning_boost||0); if(ld!==0)return ld; return b.opportunity_score-a.opportunity_score })
+    products.sort((a:any,b:any)=>{ const rd=Number(b.raw_data?.relevance_score||0)-Number(a.raw_data?.relevance_score||0); if(Math.abs(rd)>=5)return rd; const nd=Number(b.raw_data?.niche_learning_boost||0)-Number(a.raw_data?.niche_learning_boost||0); if(nd!==0)return nd; const ld=Number(b.raw_data?.learning_boost||0)-Number(a.raw_data?.learning_boost||0); if(ld!==0)return ld; return b.opportunity_score-a.opportunity_score })
     const pageInfo=result?.pageInfo||{}
-    return res.status(200).json({success:true,marketplace:'Shopee',status:'ok',message:`${products.length} produtos relevantes encontrados pela Shopee Affiliate Open API.`,total_found:products.length,products,page,offset:(page-1)*limit,next_offset:page*limit,has_more:Boolean(pageInfo?.hasNextPage),page_info:pageInfo,source_mode:'shopee_affiliate_open_api',learning:{enabled:true,history_products:learningProfile.length,mode:'observed_conversion_similarity_v2',context:learningContext}})
+    return res.status(200).json({success:true,marketplace:'Shopee',status:'ok',message:`${products.length} produtos relevantes encontrados pela Shopee Affiliate Open API.`,total_found:products.length,products,page,offset:(page-1)*limit,next_offset:page*limit,has_more:Boolean(pageInfo?.hasNextPage),page_info:pageInfo,source_mode:'shopee_affiliate_open_api',learning:{enabled:true,history_products:learningProfile.length,winning_niches:nicheProfile.length,mode:'observed_conversion_similarity_and_niche_v3',context:learningContext}})
   } catch(err:any) { return res.status(200).json({success:false,marketplace:'Shopee',status:'api_error',total_found:0,products:[],message:String(err?.message||err)}) }
 }
