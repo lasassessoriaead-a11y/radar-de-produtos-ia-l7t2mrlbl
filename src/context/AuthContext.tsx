@@ -39,6 +39,16 @@ function mirrorSession(session: SupabaseSession | null) {
   }
 }
 
+function syncMarketplaceSessions(session: SupabaseSession | null) {
+  if (!session?.access_token) return
+  void fetch('/api/mercadolivre/sync-session', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    credentials: 'same-origin',
+    cache: 'no-store',
+  }).catch(() => {})
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [token, setToken] = useState<string | null>(null)
@@ -48,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(mapUser(session?.user))
     setToken(session?.access_token || null)
     mirrorSession(session)
+    syncMarketplaceSessions(session)
   }
 
   useEffect(() => {
