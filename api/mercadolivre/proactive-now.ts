@@ -4,12 +4,14 @@ function clamp(n:number,min:number,max:number){return Math.max(min,Math.min(max,
 function scoreCandidate(trendPosition:number,highlightPosition:number,sold:number,price:number,freeShipping:boolean){let score=62;score+=Math.max(2,12-trendPosition);score+=Math.max(2,12-Math.floor(highlightPosition/2));if(sold>=1000)score+=8;else if(sold>=500)score+=6;else if(sold>=100)score+=4;else if(sold>=20)score+=2;if(price>=20&&price<=800)score+=3;if(freeShipping)score+=2;return clamp(Math.round(score),0,96)}
 async function mlJson(url:string,token:string){const r=await fetch(url,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json','User-Agent':'RadarIA/1.0'}});const d=await r.json().catch(()=>({}));if(!r.ok){const err:any=new Error(d?.message||d?.error||`Mercado Livre HTTP ${r.status}`);err.status=r.status;throw err}return d}
 async function resolveHighlight(entry:any,token:string){const id=String(entry?.id||''),type=String(entry?.type||'');if(!id)return null;if(type==='ITEM'){const item=await mlJson(`https://api.mercadolibre.com/items/${encodeURIComponent(id)}`,token);return item?.id?item:null}if(type==='PRODUCT'){const product=await mlJson(`https://api.mercadolibre.com/products/${encodeURIComponent(id)}`,token);const itemId=String(product?.buy_box_winner?.item_id||'');if(!itemId)return null;const item=await mlJson(`https://api.mercadolibre.com/items/${encodeURIComponent(itemId)}`,token);return item?.id?item:null}return null}
+async function saveHistory(ctx:{user:any;auth:string;url:string;key:string},row:any){const r=await fetch(`${ctx.url}/rest/v1/hunter_scan_history`,{method:'POST',headers:{apikey:ctx.key,Authorization:ctx.auth,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(row)});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.message||`Falha ao salvar histórico (${r.status}).`)}}
 
 export default async function handler(req:any,res:any){
   res.setHeader('Cache-Control','no-store')
   if(req.method!=='POST')return res.status(405).json({error:'Method not allowed'})
   try{
-    const {user,auth,url,key}=await requireSupabaseUser(req)
+    const ctx=await requireSupabaseUser(req)
+    const {user,auth,url,key}=ctx
     const {session,setCookie}=await getMercadoLivreSession(req)
     if(setCookie)res.setHeader('Set-Cookie',setCookie)
     const trends=await mlJson('https://api.mercadolibre.com/trends/MLB',session.access_token)
@@ -45,6 +47,7 @@ export default async function handler(req:any,res:any){
 
     rows.sort((a,b)=>Number(b.proactive_score)-Number(a.proactive_score));const selected=rows.slice(0,20)
     if(selected.length){const wr=await fetch(`${url}/rest/v1/hunter_proactive_opportunities?on_conflict=user_id,platform,external_id`,{method:'POST',headers:{apikey:key,Authorization:auth,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(selected)});if(!wr.ok){const e=await wr.json().catch(()=>({}));throw new Error(e?.message||'Não foi possível salvar as oportunidades.')}}
-    return res.status(200).json({success:true,trend_keywords:keywords.length,categories_predicted:categoriesPredicted,highlights_checked:highlightsChecked,items_resolved:itemsResolved,candidates:selected.length,saved:selected.length,skipped_upstream:skippedUpstream,diagnostics,source:'mercadolivre_trends_highlights_manual'})
+    await saveHistory(ctx,{user_id:user.id,marketplace:'Mercado Livre',run_type:'manual',status:'success',trend_keywords:keywords.length,categories_predicted:categoriesPredicted,highlights_checked:highlightsChecked,items_resolved:itemsResolved,candidates:selected.length,saved:selected.length,skipped_upstream:skippedUpstream,diagnostics,source:'mercadolivre_trends_highlights_manual'})
+    return res.status(200).json({success:true,trend_keywords:keywords.length,categories_predicted:categoriesPredicted,highlights_checked:highlightsChecked,items_resolved:itemsResolved,candidates:selected.length,saved:selected.length,skipped_upstream:skippedUpstream,diagnostics,history_saved:true,source:'mercadolivre_trends_highlights_manual'})
   }catch(e:any){return res.status(500).json({success:false,error:String(e?.message||e||'Falha na busca manual do Mercado Livre.'),status:Number(e?.status||0)||null})}
 }
