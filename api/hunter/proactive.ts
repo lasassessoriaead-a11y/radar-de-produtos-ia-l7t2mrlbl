@@ -1,4 +1,4 @@
-import { requireSupabaseUser } from '../../server/mercadolivre'
+import { requireSupabaseUser } from '../../server/mercadolivre.js'
 
 export default async function handler(req:any,res:any){
   res.setHeader('Cache-Control','no-store')
@@ -11,8 +11,10 @@ export default async function handler(req:any,res:any){
       const status=String(req.query?.status||'new')
       const url=`${session.url}/rest/v1/hunter_proactive_opportunities?user_id=eq.${uid}&status=eq.${encodeURIComponent(status)}&order=proactive_score.desc,last_seen_at.desc&limit=${limit}&select=*`
       const r=await fetch(url,{headers})
-      const rows=await r.json().catch(()=>[])
-      if(!r.ok)throw new Error(rows?.message||'Falha ao carregar oportunidades proativas.')
+      const raw=await r.text()
+      let rows:any=[]
+      try{rows=raw?JSON.parse(raw):[]}catch{rows=[]}
+      if(!r.ok)throw new Error(rows?.message||rows?.error||`Falha ao carregar oportunidades proativas (${r.status}).`)
       return res.status(200).json({success:true,items:Array.isArray(rows)?rows:[],count:Array.isArray(rows)?rows.length:0})
     }
     if(req.method==='PATCH'){
@@ -21,10 +23,16 @@ export default async function handler(req:any,res:any){
       if(!id)return res.status(400).json({success:false,error:'ID obrigatório.'})
       if(!['new','seen','ignored','imported'].includes(status))return res.status(400).json({success:false,error:'Status inválido.'})
       const r=await fetch(`${session.url}/rest/v1/hunter_proactive_opportunities?id=eq.${encodeURIComponent(id)}&user_id=eq.${uid}`,{method:'PATCH',headers:{...headers,Prefer:'return=representation'},body:JSON.stringify({status,updated_at:new Date().toISOString()})})
-      const rows=await r.json().catch(()=>[])
-      if(!r.ok)throw new Error(rows?.message||'Falha ao atualizar oportunidade.')
+      const raw=await r.text()
+      let rows:any=[]
+      try{rows=raw?JSON.parse(raw):[]}catch{rows=[]}
+      if(!r.ok)throw new Error(rows?.message||rows?.error||`Falha ao atualizar oportunidade (${r.status}).`)
       return res.status(200).json({success:true,item:Array.isArray(rows)?rows[0]:rows})
     }
-    return res.status(405).json({error:'Method not allowed'})
-  }catch(e:any){return res.status(401).json({success:false,error:e?.message||'Falha no Hunter Proativo.'})}
+    return res.status(405).json({success:false,error:'Method not allowed'})
+  }catch(e:any){
+    const message=String(e?.message||e||'Falha no Hunter Proativo.')
+    const authError=/autentica|sessão|session|token|jwt/i.test(message)
+    return res.status(authError?401:500).json({success:false,error:message})
+  }
 }
