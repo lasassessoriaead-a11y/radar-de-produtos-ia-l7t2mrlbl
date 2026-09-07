@@ -10,9 +10,10 @@ export default async function handler(req: any, res: any) {
     if (setCookie) res.setHeader('Set-Cookie', setCookie)
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
-    const itemId = String(body.external_id || '').trim()
+    const reason = body.raw_data?.reason || {}
+    const itemId = String(reason.offer_item_id || body.external_id || '').trim()
     if (!/^MLB\d+$/i.test(itemId)) {
-      return res.status(400).json({ error: 'Item do Mercado Livre inválido.' })
+      return res.status(400).json({ error: 'Item comercial do Mercado Livre ainda não foi confirmado.' })
     }
 
     const detailRes = await fetch(`https://api.mercadolibre.com/items/${encodeURIComponent(itemId)}`, {
@@ -24,7 +25,7 @@ export default async function handler(req: any, res: any) {
     const item = await detailRes.json().catch(() => ({}))
     if (!detailRes.ok || !item?.id) {
       return res.status(detailRes.status || 400).json({
-        error: item?.message || 'Não foi possível validar o item no Mercado Livre.',
+        error: item?.message || 'Não foi possível validar o item comercial no Mercado Livre.',
       })
     }
 
@@ -37,8 +38,14 @@ export default async function handler(req: any, res: any) {
     const originalPrice = Number(item.original_price || body.price || currentPrice)
     const title = String(item.title || body.title || '').trim()
     const permalink = String(item.permalink || body.product_url || '')
+    const commissionRate = Number(body.commission_rate || 0)
+    const affiliateUrl = String(body.affiliate_url || '').trim()
+    const affiliateEligible = Boolean(reason.affiliate_eligible === true || ['eligible','eligible_by_public_rules'].includes(String(reason.affiliate_eligibility || '')))
     if (!title || !permalink || currentPrice <= 0) {
       return res.status(400).json({ error: 'O item não possui dados suficientes para entrar no Radar.' })
+    }
+    if (!affiliateEligible || commissionRate <= 0 || !affiliateUrl) {
+      return res.status(400).json({ error: 'Confirme elegibilidade, comissão e link oficial de afiliada antes de aprovar este produto.' })
     }
 
     const score = Number(body.opportunity_score || 0)
@@ -47,12 +54,12 @@ export default async function handler(req: any, res: any) {
       title,
       platform: 'Mercado Livre',
       product_url: permalink,
-      affiliate_url: null,
+      affiliate_url: affiliateUrl,
       image_url: String(picture || '').replace(/^http:/, 'https:') || null,
       price: originalPrice > currentPrice ? originalPrice : currentPrice,
       promo_price: currentPrice,
-      commission_rate: 0,
-      commission_amount: 0,
+      commission_rate: commissionRate,
+      commission_amount: Number((currentPrice * commissionRate / 100).toFixed(2)),
       category: String(item.category_id || body.category || 'Mercado Livre'),
       niche: String(item.domain_id || body.niche || ''),
       status: 'active',
@@ -70,6 +77,7 @@ export default async function handler(req: any, res: any) {
       source: 'mercadolivre_api',
       metadata: {
         external_id: item.id,
+        catalog_product_id: reason.catalog_product_id || item.catalog_product_id || null,
         seller_id: item.seller_id || body.raw_data?.seller_id || null,
         official_store_id: item.official_store_id || null,
         listing_type_id: item.listing_type_id || null,
@@ -77,6 +85,10 @@ export default async function handler(req: any, res: any) {
         free_shipping: Boolean(item.shipping?.free_shipping),
         imported_at: new Date().toISOString(),
         api_verified: true,
+        affiliate_eligible: true,
+        affiliate_eligibility_source: reason.affiliate_eligibility_source || null,
+        affiliate_commission_source: reason.affiliate_commission_source || 'manual_portal_confirmation',
+        affiliate_link_source: reason.affiliate_link_source || 'mercadolivre_portal_afiliados',
       },
     }
 
@@ -100,7 +112,7 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({
       success: true,
       product: Array.isArray(rows) ? rows[0] : rows,
-      message: 'Produto validado pela API oficial do Mercado Livre e salvo no Radar.',
+      message: 'Produto, comissão e link afiliado confirmados e salvos no Radar.',
     })
   } catch (err: any) {
     return res.status(401).json({ error: err?.message || 'Não foi possível importar o produto.' })
