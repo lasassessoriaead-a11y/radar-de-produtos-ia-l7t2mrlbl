@@ -1,9 +1,10 @@
 /* Main App Component - Handles routing (using react-router-dom), query client and other providers */
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Index from './pages/Index'
 import RadarPage from './pages/Radar'
 import HunterPage from './pages/Hunter'
@@ -23,9 +24,24 @@ import NotFound from './pages/NotFound'
 import LeadCapturePage from './pages/LeadCapture'
 import Layout from './components/Layout'
 
+function MarketplaceSessionBridge() {
+  const { token, user } = useAuth()
+
+  useEffect(() => {
+    if (!token || !user?.id) return
+    fetch('/api/mercadolivre/persist-session', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+  }, [token, user?.id])
+
+  return null
+}
+
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
+      <MarketplaceSessionBridge />
       <TooltipProvider>
         <Toaster />
         <Sonner position="top-right" richColors theme="dark" />
