@@ -5,6 +5,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/cron/mercadolivre-proactive",
+      "schedule": "15 */6 * * *"
+    },
+    {
       "path": "/api/cron/hunter-proactive",
       "schedule": "30 */6 * * *"
     }
