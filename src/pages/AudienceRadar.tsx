@@ -1691,9 +1691,13 @@ export default function AudienceRadarPage() {
                     <Button
                       size="sm"
                       onClick={() => {
-                        navigate(
-                          `/laboratorio?opportunityId=${opp.id}&hook=${encodeURIComponent(opp.suggested_copy_hook || '')}`,
-                        )
+                        const params = new URLSearchParams({
+                          opportunityId: opp.id,
+                          hook: opp.suggested_copy_hook || '',
+                        })
+                        const linkedProductId = opp.product_id || selectedProduct?.id
+                        if (linkedProductId) params.set('productId', linkedProductId)
+                        navigate(`/laboratorio?${params.toString()}`)
                       }}
                       className="h-7 text-[10px] font-bold bg-[#00F2FF] hover:bg-[#00D8E6] text-[#0A0B10]"
                     >
