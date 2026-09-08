@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState}from'react'
-import{ExternalLink,ClipboardPaste,Copy,CheckCircle2,Calculator,Info}from'lucide-react'
+import{ExternalLink,ClipboardPaste,Copy,CheckCircle2,Calculator,Info,ShieldCheck,Search,Link2}from'lucide-react'
 import{toast}from'sonner'
 import pb from '@/lib/pocketbase/client'
 import type{DiscoveredProductRecord}from'@/types/product'
@@ -8,109 +8,24 @@ import{Input}from'@/components/ui/input'
 import{Label}from'@/components/ui/label'
 import{Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle}from'@/components/ui/dialog'
 
-const AFFILIATE_HELP='https://www.mercadolivre.com.br/l/afiliados-portal-do-afiliado'
-
+const AFFILIATE_HELP='https://www.mercadolivre.com.br/l/afiliados-gere-seus-links'
+const AFFILIATE_HOME='https://www.mercadolivre.com.br/l/comece-a-recomendar'
 type Props={product:DiscoveredProductRecord;open:boolean;onOpenChange:(open:boolean)=>void}
-
-function parseRate(text:string){
- const m=String(text||'').replace(',','.').match(/(?:^|\s)(\d{1,2}(?:\.\d{1,2})?)\s*%?/)
- if(!m)return null
- const n=Number(m[1])
- return Number.isFinite(n)&&n>0&&n<=100?n:null
-}
-
-function extractMlUrl(text:string){
- const matches=String(text||'').match(/https:\/\/[^\s]+/g)||[]
- return matches.find(value=>{
-  try{const h=new URL(value).hostname.toLowerCase();return h==='meli.la'||h.endsWith('.meli.la')||h==='mercadolivre.com.br'||h.endsWith('.mercadolivre.com.br')||h==='mercadolivre.com'||h.endsWith('.mercadolivre.com')||h==='mercadolibre.com'||h.endsWith('.mercadolibre.com')}catch{return false}
- })||''
-}
-
+function parseRate(text:string){const m=String(text||'').replace(',','.').match(/(\d{1,2}(?:\.\d{1,2})?)\s*%/);if(!m)return null;const n=Number(m[1]);return Number.isFinite(n)&&n>0&&n<=100?n:null}
+function extractMlUrl(text:string){const matches=String(text||'').match(/https:\/\/[^\s]+/g)||[];return matches.find(value=>{try{const h=new URL(value).hostname.toLowerCase();return h==='meli.la'||h.endsWith('.meli.la')||h==='mercadolivre.com.br'||h.endsWith('.mercadolivre.com.br')||h==='mercadolivre.com'||h.endsWith('.mercadolivre.com')||h==='mercadolibre.com'||h.endsWith('.mercadolibre.com')}catch{return false}})||''}
 export function MercadoLivreAffiliateAssistant({product,open,onOpenChange}:Props){
  const raw:any=product.raw_data||{},reason:any=raw.reason||{},proactiveId=String(raw.proactive_id||'')
- const [rate,setRate]=useState(product.commission_rate>0?String(product.commission_rate).replace('.',','):'')
- const [link,setLink]=useState(product.affiliate_url||'')
- const [saving,setSaving]=useState(false)
- const price=Number(product.promo_price&&product.promo_price>0?product.promo_price:product.price||0)
- const rateNumber=Number(String(rate).replace(',','.'))
- const earning=useMemo(()=>price>0&&Number.isFinite(rateNumber)&&rateNumber>0?price*rateNumber/100:0,[price,rateNumber])
-
+ const [rate,setRate]=useState(product.commission_rate>0?String(product.commission_rate).replace('.',','):'');const[link,setLink]=useState(product.affiliate_url||'');const[saving,setSaving]=useState(false)
+ const price=Number(product.promo_price&&product.promo_price>0?product.promo_price:product.price||0),rateNumber=Number(String(rate).replace(',','.')),earning=useMemo(()=>price>0&&Number.isFinite(rateNumber)&&rateNumber>0?price*rateNumber/100:0,[price,rateNumber])
  useEffect(()=>{if(open){setRate(product.commission_rate>0?String(product.commission_rate).replace('.',','):'');setLink(product.affiliate_url||'')}},[open,product.commission_rate,product.affiliate_url])
-
- const openProduct=async()=>{
-  const confirmedUrl=String(product.product_url||'').trim()
-  const fallbackSearch=`https://lista.mercadolivre.com.br/${encodeURIComponent(String(product.title||'').trim().replace(/%20/g,'-'))}`
-  const target=confirmedUrl||fallbackSearch
-  const copyValue=confirmedUrl||String(product.title||'').trim()
-  try{
-   await navigator.clipboard.writeText(copyValue)
-   if(confirmedUrl)toast.success('URL do produto copiada. A página do produto será aberta agora.')
-   else toast.info('A URL comercial deste card ainda não foi confirmada. Copiei o nome exato e abri a busca do Mercado Livre para você localizar o produto sem inventar um link.')
-  }catch{
-   toast.info(confirmedUrl?'Abrindo o produto no Mercado Livre.':'Abrindo a busca do produto no Mercado Livre.')
-  }
-  window.open(target,'_blank','noopener,noreferrer')
- }
-
- const openPortalHelp=()=>window.open(AFFILIATE_HELP,'_blank','noopener,noreferrer')
-
- const captureClipboard=async()=>{
-  try{
-   const text=await navigator.clipboard.readText()
-   if(!text)return toast.error('A área de transferência está vazia.')
-   const foundUrl=extractMlUrl(text),foundRate=parseRate(text)
-   if(foundUrl)setLink(foundUrl)
-   if(foundRate)setRate(String(foundRate).replace('.',','))
-   if(foundUrl&&foundRate)return toast.success('Link e comissão capturados da área de transferência.')
-   if(foundUrl)return toast.success('Link de afiliada capturado. Informe também a comissão mostrada no Portal.')
-   if(foundRate)return toast.success('Comissão capturada. Copie também o link oficial de afiliada.')
-   toast.error('Não encontrei link do Mercado Livre nem porcentagem válida no conteúdo copiado.')
-  }catch{toast.error('O navegador não liberou leitura da área de transferência. Cole os dados nos campos abaixo.')}
- }
-
- const save=async()=>{
-  const rateValue=Number(String(rate).replace(',','.'))
-  if(!proactiveId)return toast.error('Esta oportunidade ainda não possui ID do Hunter.')
-  if(!Number.isFinite(rateValue)||rateValue<=0||rateValue>100)return toast.error('Informe a comissão exata mostrada no Portal do Afiliado.')
-  if(!extractMlUrl(link))return toast.error('Cole um link oficial válido do Mercado Livre/Afiliados.')
-  setSaving(true)
-  try{
-   const res=await fetch('/api/hunter/proactive',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`},body:JSON.stringify({id:proactiveId,operation:'affiliate_confirm',commission_rate:rateValue,affiliate_url:link.trim()})})
-   const data=await res.json().catch(()=>({}))
-   if(!res.ok||!data?.success)throw new Error(data?.error||'Falha ao salvar dados de afiliado.')
-   toast.success(`Afiliado confirmado. Ganho estimado: R$ ${Number(data?.item?.commission_amount||earning).toFixed(2)} por venda.`)
-   onOpenChange(false)
-   window.setTimeout(()=>window.location.reload(),450)
-  }catch(e:any){toast.error(e?.message||'Falha ao salvar dados de afiliado.')}finally{setSaving(false)}
- }
-
- return <Dialog open={open} onOpenChange={onOpenChange}>
-  <DialogContent className="bg-[#10121A] border-[#FFD600]/30 text-white sm:max-w-xl">
-   <DialogHeader>
-    <DialogTitle className="text-[#FFD600]">Assistente de Afiliados • Mercado Livre</DialogTitle>
-    <DialogDescription className="text-gray-400">O Radar abre o produto quando a URL comercial está confirmada. Quando o Mercado Livre ainda não devolveu essa URL, abre a busca pelo nome exato em vez de fabricar um endereço incorreto.</DialogDescription>
-   </DialogHeader>
-   <div className="space-y-4">
-    <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-2">
-     <div className="text-xs text-gray-300 font-semibold">1. Abrir o produto certo</div>
-     <div className="text-[11px] text-gray-500">Se a URL estiver confirmada, o botão copia e abre o anúncio. Se ainda não estiver, ele copia o nome exato e abre a busca do Mercado Livre para você chegar ao produto correto.</div>
-     <Button type="button" onClick={openProduct} className="w-full bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><ExternalLink className="w-4 h-4 mr-2"/>{product.product_url?'Copiar URL + abrir este produto':'Copiar nome + localizar este produto'}</Button>
-     <Button type="button" variant="outline" onClick={openPortalHelp} className="w-full border-[#00F2FF]/30 text-[#00F2FF]"><Info className="w-4 h-4 mr-2"/>Como acessar o Portal do Afiliado</Button>
-    </div>
-    <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-3">
-     <div className="flex items-center justify-between gap-2"><div><div className="text-xs text-gray-300 font-semibold">2. Voltar ao Radar</div><div className="text-[11px] text-gray-500">Copie o link gerado no Mercado Livre. O Radar tenta capturar o link e a porcentagem automaticamente.</div></div><Button type="button" variant="outline" onClick={captureClipboard} className="border-[#00F2FF]/35 text-[#00F2FF]"><ClipboardPaste className="w-4 h-4 mr-1"/>Capturar copiado</Button></div>
-     <div className="grid sm:grid-cols-[140px_1fr] gap-3">
-      <div className="space-y-1"><Label htmlFor="ml-commission" className="text-xs text-gray-300">Comissão exata (%)</Label><Input id="ml-commission" inputMode="decimal" value={rate} onChange={e=>setRate(e.target.value)} placeholder="Ex.: 12,5" className="bg-[#111521] border-[#30364B]"/></div>
-      <div className="space-y-1"><Label htmlFor="ml-aff-link" className="text-xs text-gray-300">Seu link oficial de afiliada</Label><div className="flex gap-2"><Input id="ml-aff-link" value={link} onChange={e=>setLink(e.target.value)} placeholder="https://meli.la/..." className="bg-[#111521] border-[#30364B]"/><Button type="button" size="icon" variant="outline" onClick={async()=>{try{await navigator.clipboard.writeText(link);toast.success('Link copiado.')}catch{}}} disabled={!link}><Copy className="w-4 h-4"/></Button></div></div>
-     </div>
-    </div>
-    <div className="rounded-xl border border-[#00E676]/25 bg-[#07140d] p-3 flex items-center justify-between gap-3"><div><div className="text-[10px] uppercase text-[#00E676] font-black">Ganho estimado por venda</div><div className="text-[11px] text-gray-400">Preço atual: {price>0?`R$ ${price.toFixed(2)}`:'não informado'}</div></div><div className="text-xl font-black text-[#00E676] flex items-center gap-1"><Calculator className="w-4 h-4"/>{earning>0?`R$ ${earning.toFixed(2)}`:'—'}</div></div>
-    {reason.affiliate_eligibility&&<div className="text-[10px] text-gray-500">Elegibilidade atual: {String(reason.affiliate_eligibility)}</div>}
-   </div>
-   <DialogFooter>
-    <Button type="button" variant="outline" onClick={()=>onOpenChange(false)} disabled={saving}>Cancelar</Button>
-    <Button type="button" onClick={save} disabled={saving||!rate||!link} className="bg-[#00E676] text-black hover:bg-[#00E676]/90"><CheckCircle2 className="w-4 h-4 mr-2"/>{saving?'Salvando...':'Confirmar e calcular ganho'}</Button>
-   </DialogFooter>
-  </DialogContent>
- </Dialog>
+ const openProduct=async()=>{const confirmedUrl=String(product.product_url||'').trim(),fallbackSearch=`https://lista.mercadolivre.com.br/${encodeURIComponent(String(product.title||'').trim())}`,target=confirmedUrl||fallbackSearch,copyValue=confirmedUrl||String(product.title||'').trim();try{await navigator.clipboard.writeText(copyValue);toast.success(confirmedUrl?'URL copiada. No anúncio, procure a Barra de Afiliados e clique em Compartilhar.':'Nome copiado. Escolha um anúncio específico que mostre opção de afiliado/Ganhos Extras e depois gere o link.')}catch{}window.open(target,'_blank','noopener,noreferrer')}
+ const openAffiliate=()=>window.open(AFFILIATE_HOME,'_blank','noopener,noreferrer'),openHelp=()=>window.open(AFFILIATE_HELP,'_blank','noopener,noreferrer')
+ const captureClipboard=async()=>{try{const text=await navigator.clipboard.readText();if(!text)return toast.error('A área de transferência está vazia.');const u=extractMlUrl(text),r=parseRate(text);if(u)setLink(u);if(r)setRate(String(r).replace('.',','));if(u&&r)return toast.success('Link e comissão capturados.');if(u)return toast.success('Link capturado. Informe a porcentagem exibida pelo Mercado Livre.');if(r)return toast.success('Comissão capturada. Copie também o link gerado pelo Mercado Livre.');toast.error('Não encontrei link de afiliada nem porcentagem no conteúdo copiado.')}catch{toast.error('O navegador não permitiu ler a área de transferência. Você pode colar nos campos abaixo.')}}
+ const save=async()=>{const rv=Number(String(rate).replace(',','.'));if(!proactiveId)return toast.error('Esta oportunidade ainda não possui ID do Hunter.');if(!Number.isFinite(rv)||rv<=0||rv>100)return toast.error('Informe a comissão exata exibida pelo Mercado Livre.');if(!extractMlUrl(link))return toast.error('Cole o link gerado pelas ferramentas oficiais do Mercado Livre.');setSaving(true);try{const res=await fetch('/api/hunter/proactive',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:`Bearer ${pb.authStore.token}`},body:JSON.stringify({id:proactiveId,operation:'affiliate_confirm',commission_rate:rv,affiliate_url:link.trim()})}),data=await res.json().catch(()=>({}));if(!res.ok||!data?.success)throw new Error(data?.error||'Falha ao salvar dados de afiliado.');toast.success(`Pronto para vender. Ganho estimado: R$ ${Number(data?.item?.commission_amount||earning).toFixed(2)} por venda.`);onOpenChange(false);window.setTimeout(()=>window.location.reload(),450)}catch(e:any){toast.error(e?.message||'Falha ao salvar dados de afiliado.')}finally{setSaving(false)}}
+ return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="bg-[#10121A] border-[#FFD600]/30 text-white sm:max-w-2xl"><DialogHeader><DialogTitle className="text-[#FFD600]">Escolher anúncio afiliável • Mercado Livre</DialogTitle><DialogDescription className="text-gray-400">O Radar encontrou o produto em alta. Agora esta etapa confirma qual anúncio específico pode gerar ganho para você.</DialogDescription></DialogHeader><div className="space-y-3">
+ <div className="rounded-xl border border-[#00E676]/25 bg-[#07140d] p-3"><div className="text-xs font-bold text-[#00E676] flex items-center gap-1"><ShieldCheck className="w-4 h-4"/>O que procurar no anúncio</div><div className="text-[11px] text-gray-300 mt-2">Escolha um <b>produto novo</b>, de <b>vendedor com reputação verde</b>. Na página do anúncio, use a <b>Barra de Afiliados → Compartilhar</b>. Se aparecer <b>Ganhos Extras</b>, melhor ainda. Não gere link da página de busca: o link deve ser do produto específico.</div></div>
+ <div className="grid sm:grid-cols-2 gap-2"><Button onClick={openProduct} className="bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><Search className="w-4 h-4 mr-2"/>{product.product_url?'Abrir anúncio encontrado':'Localizar anúncio afiliável'}</Button><Button variant="outline" onClick={openAffiliate} className="border-[#00F2FF]/30 text-[#00F2FF]"><ExternalLink className="w-4 h-4 mr-2"/>Abrir Central de Afiliados</Button></div>
+ <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-2"><div className="text-xs font-semibold text-white flex items-center gap-1"><Link2 className="w-4 h-4 text-[#FFD600]"/>Depois de gerar o link</div><div className="text-[11px] text-gray-400">Copie o link criado pelo Mercado Livre e volte aqui. Se junto do conteúdo copiado houver a porcentagem, o Radar captura os dois.</div><Button type="button" variant="outline" onClick={captureClipboard} className="w-full border-[#00F2FF]/35 text-[#00F2FF]"><ClipboardPaste className="w-4 h-4 mr-2"/>Capturar link/comissão copiados</Button><div className="grid sm:grid-cols-[150px_1fr] gap-3"><div><Label className="text-xs">Comissão (%)</Label><Input value={rate} onChange={e=>setRate(e.target.value)} placeholder="Ex.: 12" className="bg-[#111521] border-[#30364B]"/></div><div><Label className="text-xs">Link oficial gerado</Label><div className="flex gap-2"><Input value={link} onChange={e=>setLink(e.target.value)} placeholder="https://meli.la/..." className="bg-[#111521] border-[#30364B]"/><Button size="icon" variant="outline" onClick={async()=>{try{await navigator.clipboard.writeText(link)}catch{}}} disabled={!link}><Copy className="w-4 h-4"/></Button></div></div></div></div>
+ <div className="rounded-xl border border-[#00E676]/25 bg-[#07140d] p-3 flex justify-between items-center"><div><div className="text-[10px] uppercase text-[#00E676] font-black">Você ganha por venda</div><div className="text-[11px] text-gray-400">Preço usado: {price>0?`R$ ${price.toFixed(2)}`:'não informado'}</div></div><div className="text-xl font-black text-[#00E676] flex items-center gap-1"><Calculator className="w-4 h-4"/>{earning>0?`R$ ${earning.toFixed(2)}`:'—'}</div></div>
+ <Button variant="ghost" onClick={openHelp} className="w-full text-gray-400"><Info className="w-4 h-4 mr-2"/>Ver instrução oficial para gerar links</Button></div><DialogFooter><Button variant="outline" onClick={()=>onOpenChange(false)} disabled={saving}>Cancelar</Button><Button onClick={save} disabled={saving||!rate||!link} className="bg-[#00E676] text-black hover:bg-[#00E676]/90"><CheckCircle2 className="w-4 h-4 mr-2"/>{saving?'Salvando...':'Confirmar anúncio e calcular ganho'}</Button></DialogFooter></DialogContent></Dialog>
 }
