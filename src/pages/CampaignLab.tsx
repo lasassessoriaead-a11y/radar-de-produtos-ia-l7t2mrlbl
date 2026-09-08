@@ -56,6 +56,7 @@ import { productsService, askAiAnalyst } from '@/services/products'
 import { hunterService } from '@/services/hunter'
 import pb from '@/lib/pocketbase/client'
 import { campaignService } from '@/services/campaigns'
+import { audienceService } from '@/services/audience'
 import type { ProductRecord, DiscoveredProductRecord } from '@/types/product'
 import type {
   CampaignRecord,
@@ -74,10 +75,12 @@ export default function CampaignLabPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  // Query parameters: productId, discoveredId, or editCampaignId
+  // Query parameters: productId, discoveredId, editCampaignId, or an audience opportunity
   const productId = searchParams.get('productId') || ''
   const discoveredId = searchParams.get('discoveredId') || ''
   const editCampaignId = searchParams.get('campaignId') || ''
+  const opportunityId = searchParams.get('opportunityId') || ''
+  const opportunityHook = searchParams.get('hook') || ''
 
   // Product loading & state
   const [isLoadingProduct, setIsLoadingProduct] = useState(false)
@@ -161,7 +164,11 @@ export default function CampaignLabPage() {
   // Custom Copy Generator Sub-State
   const [customChannel, setCustomChannel] = useState('Instagram')
   const [customFormat, setCustomFormat] = useState('caption')
-  const [customInstruction, setCustomInstruction] = useState('')
+  const [customInstruction, setCustomInstruction] = useState(() =>
+    opportunityHook
+      ? `Use este gancho identificado pelo Radar de Público: “${opportunityHook}”`
+      : '',
+  )
   const [isGeneratingCustomFormat, setIsGeneratingCustomFormat] = useState(false)
   const [generatedCustomResult, setGeneratedCustomResult] = useState<{
     headline?: string
@@ -324,6 +331,16 @@ export default function CampaignLabPage() {
     return !genericTitle && !missingImage && !missingPrice && !missingDestination
   })()
 
+  const markOpportunityAsUsed = async () => {
+    if (!opportunityId) return
+
+    try {
+      await audienceService.updateOpportunityStatus(opportunityId, 'used_in_lab')
+    } catch (err) {
+      console.warn('Campaign saved, but opportunity status could not be updated:', err)
+    }
+  }
+
   // 2. Generate 1-Click Complete Campaign
   const handleGenerateFullCampaign = async () => {
     if (!isProductVerifiedForCampaign) {
@@ -407,6 +424,7 @@ export default function CampaignLabPage() {
       } as Partial<CampaignRecord> & { variations?: CampaignVariation[] })
 
       setSavedCampaignId(saved.campaign_id)
+      await markOpportunityAsUsed()
       toast.success('Campanha gerada e salva automaticamente no Histórico!')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Falha ao gerar campanha'
@@ -464,6 +482,7 @@ export default function CampaignLabPage() {
 
       const res = await campaignService.saveCampaign(payload)
       setSavedCampaignId(res.campaign_id)
+      await markOpportunityAsUsed()
       toast.success('Campanha salva na sua Biblioteca com sucesso!')
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar'
