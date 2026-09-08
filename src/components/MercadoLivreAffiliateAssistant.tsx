@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState}from'react'
-import{ExternalLink,ClipboardPaste,Copy,CheckCircle2,Calculator}from'lucide-react'
+import{ExternalLink,ClipboardPaste,Copy,CheckCircle2,Calculator,Info}from'lucide-react'
 import{toast}from'sonner'
 import pb from '@/lib/pocketbase/client'
 import type{DiscoveredProductRecord}from'@/types/product'
@@ -8,7 +8,7 @@ import{Input}from'@/components/ui/input'
 import{Label}from'@/components/ui/label'
 import{Dialog,DialogContent,DialogDescription,DialogFooter,DialogHeader,DialogTitle}from'@/components/ui/dialog'
 
-const AFFILIATE_HOME='https://www.mercadolivre.com.br/l/afiliados-home'
+const AFFILIATE_HELP='https://www.mercadolivre.com.br/l/afiliados-portal-do-afiliado'
 
 type Props={product:DiscoveredProductRecord;open:boolean;onOpenChange:(open:boolean)=>void}
 
@@ -37,12 +37,13 @@ export function MercadoLivreAffiliateAssistant({product,open,onOpenChange}:Props
 
  useEffect(()=>{if(open){setRate(product.commission_rate>0?String(product.commission_rate).replace('.',','):'');setLink(product.affiliate_url||'')}},[open,product.commission_rate,product.affiliate_url])
 
- const openPortal=async()=>{
-  if(product.product_url){
-   try{await navigator.clipboard.writeText(product.product_url);toast.success('URL do produto copiada. No Portal do Afiliado, gere o seu link para este produto.')}catch{toast.info('Abra o produto no Mercado Livre e use o Portal do Afiliado para gerar o link.')}
-  }
-  window.open(AFFILIATE_HOME,'_blank','noopener,noreferrer')
+ const openProduct=async()=>{
+  if(!product.product_url)return toast.error('Este produto ainda não tem URL comercial confirmada.')
+  try{await navigator.clipboard.writeText(product.product_url);toast.success('URL do produto copiada. Na página do produto, use Compartilhar pela Barra de Afiliados ou cole a URL no Gerador de Links do Portal.')}catch{toast.info('Abra o produto e use Compartilhar pela Barra de Afiliados.')}
+  window.open(product.product_url,'_blank','noopener,noreferrer')
  }
+
+ const openPortalHelp=()=>window.open(AFFILIATE_HELP,'_blank','noopener,noreferrer')
 
  const captureClipboard=async()=>{
   try{
@@ -78,16 +79,17 @@ export function MercadoLivreAffiliateAssistant({product,open,onOpenChange}:Props
   <DialogContent className="bg-[#10121A] border-[#FFD600]/30 text-white sm:max-w-xl">
    <DialogHeader>
     <DialogTitle className="text-[#FFD600]">Assistente de Afiliados • Mercado Livre</DialogTitle>
-    <DialogDescription className="text-gray-400">O Radar automatiza o que é possível com segurança. A porcentagem exata e o link continuam sendo confirmados no Portal do Afiliado porque a API pública não fornece esses dois dados por produto para sua conta.</DialogDescription>
+    <DialogDescription className="text-gray-400">O Radar abre o produto correto e copia a URL. O Mercado Livre não fornece um endereço público estável que leve direto ao seu painel autenticado; no computador, o acesso oficial é pelo menu do seu nome → Afiliados.</DialogDescription>
    </DialogHeader>
    <div className="space-y-4">
     <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-2">
-     <div className="text-xs text-gray-300 font-semibold">1. Gerar o link no ambiente oficial</div>
-     <div className="text-[11px] text-gray-500">O botão copia automaticamente a URL deste produto e abre o ambiente oficial do Mercado Livre.</div>
-     <Button type="button" onClick={openPortal} className="w-full bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><ExternalLink className="w-4 h-4 mr-2"/>Copiar produto + abrir Portal do Afiliado</Button>
+     <div className="text-xs text-gray-300 font-semibold">1. Abrir o produto certo</div>
+     <div className="text-[11px] text-gray-500">O botão copia a URL deste produto e abre o anúncio. Se sua Barra de Afiliados estiver ativa, use Compartilhar para gerar o link. Se não estiver, entre no Portal pelo menu do seu nome e use Gerador de Links.</div>
+     <Button type="button" onClick={openProduct} disabled={!product.product_url} className="w-full bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><ExternalLink className="w-4 h-4 mr-2"/>Copiar URL + abrir este produto</Button>
+     <Button type="button" variant="outline" onClick={openPortalHelp} className="w-full border-[#00F2FF]/30 text-[#00F2FF]"><Info className="w-4 h-4 mr-2"/>Como acessar o Portal do Afiliado</Button>
     </div>
     <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-3">
-     <div className="flex items-center justify-between gap-2"><div><div className="text-xs text-gray-300 font-semibold">2. Voltar ao Radar</div><div className="text-[11px] text-gray-500">Copie do Portal o link gerado e, se quiser, a porcentagem. O Radar tenta reconhecer o conteúdo automaticamente.</div></div><Button type="button" variant="outline" onClick={captureClipboard} className="border-[#00F2FF]/35 text-[#00F2FF]"><ClipboardPaste className="w-4 h-4 mr-1"/>Capturar copiado</Button></div>
+     <div className="flex items-center justify-between gap-2"><div><div className="text-xs text-gray-300 font-semibold">2. Voltar ao Radar</div><div className="text-[11px] text-gray-500">Copie o link gerado no Mercado Livre. O Radar tenta capturar o link e a porcentagem automaticamente.</div></div><Button type="button" variant="outline" onClick={captureClipboard} className="border-[#00F2FF]/35 text-[#00F2FF]"><ClipboardPaste className="w-4 h-4 mr-1"/>Capturar copiado</Button></div>
      <div className="grid sm:grid-cols-[140px_1fr] gap-3">
       <div className="space-y-1"><Label htmlFor="ml-commission" className="text-xs text-gray-300">Comissão exata (%)</Label><Input id="ml-commission" inputMode="decimal" value={rate} onChange={e=>setRate(e.target.value)} placeholder="Ex.: 12,5" className="bg-[#111521] border-[#30364B]"/></div>
       <div className="space-y-1"><Label htmlFor="ml-aff-link" className="text-xs text-gray-300">Seu link oficial de afiliada</Label><div className="flex gap-2"><Input id="ml-aff-link" value={link} onChange={e=>setLink(e.target.value)} placeholder="https://meli.la/..." className="bg-[#111521] border-[#30364B]"/><Button type="button" size="icon" variant="outline" onClick={async()=>{try{await navigator.clipboard.writeText(link);toast.success('Link copiado.')}catch{}}} disabled={!link}><Copy className="w-4 h-4"/></Button></div></div>
