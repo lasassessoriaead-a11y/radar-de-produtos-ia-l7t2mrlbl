@@ -16,7 +16,7 @@ export const audienceService = {
       import.meta.env.VITE_BACKEND_URL ||
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/radar-api`
 
-    const [backendRes, googleRes] = await Promise.allSettled([
+    const [backendRes, googleRes, youtubeRes] = await Promise.allSettled([
       fetch(`${backendUrl}/backend/v1/audience/providers`, {
         method: 'GET',
         headers: {
@@ -25,6 +25,7 @@ export const audienceService = {
         },
       }),
       fetch('/api/audience-search', { method: 'GET' }),
+      fetch('/api/youtube-search', { method: 'GET' }),
     ])
 
     let providers: AudienceProviderMeta[] = []
@@ -98,6 +99,26 @@ export const audienceService = {
       else providers.unshift(googleProvider)
     }
 
+    if (youtubeRes.status === 'fulfilled' && youtubeRes.value.ok) {
+      const y = await youtubeRes.value.json()
+      const idx = providers.findIndex((p) => p.id === 'youtube')
+      const youtubeProvider: AudienceProviderMeta = {
+        id: 'youtube',
+        name: 'YouTube',
+        category: 'video_search',
+        status: y.is_configured ? 'active' : 'pending_integration',
+        status_label: y.status_label || (y.is_configured ? 'Ativo' : 'Aguardando credencial'),
+        is_primary: false,
+        order: 2,
+        description: 'Busca real de vídeos, reviews e dúvidas públicas relacionadas ao produto.',
+        supported_features: ['Reviews', 'Busca em vídeo', 'Tendências de conteúdo'],
+        required_credentials: ['YOUTUBE_API_KEY'],
+        is_configured: Boolean(y.is_configured),
+      }
+      if (idx >= 0) providers[idx] = youtubeProvider
+      else providers.push(youtubeProvider)
+    }
+
     return { success: true, providers: providers.sort((a, b) => a.order - b.order) }
   },
 
@@ -157,7 +178,9 @@ export const audienceService = {
     const endpoint =
       params.provider === 'google_search'
         ? '/api/audience-search'
-        : `${backendUrl}/backend/v1/audience/search`
+        : params.provider === 'youtube'
+          ? '/api/youtube-search'
+          : `${backendUrl}/backend/v1/audience/search`
 
     const res = await fetch(endpoint, {
       method: 'POST',

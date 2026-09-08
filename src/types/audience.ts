@@ -56,7 +56,13 @@ export interface AudienceProviderMeta {
   id: string
   name: string
   category: string
-  status: 'pending_integration' | 'active' | 'configured'
+  status:
+    | 'pending_integration'
+    | 'credentials_required'
+    | 'active'
+    | 'configured'
+    | 'approval_required'
+    | 'api_error'
   status_label: string
   is_primary: boolean
   order: number

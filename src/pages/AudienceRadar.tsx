@@ -175,7 +175,7 @@ export default function AudienceRadarPage() {
     loadInitialData()
   }, [])
 
-  // 3. Consultar Provedor (Reddit = 1º Provider / Status: Integração pendente)
+  // 3. Consultar um provedor real e encaminhar os sinais encontrados à análise.
   const handleQueryProvider = async () => {
     const term = searchKeyword || selectedProduct?.title
     if (!term && selectedCategory === 'Todas') {
@@ -221,7 +221,7 @@ export default function AudienceRadarPage() {
           description: res.message,
           duration: 8000,
         })
-      } else if (res.status === 'pending_integration') {
+      } else if (res.status === 'pending_integration' || res.status === 'credentials_required') {
         toast.info(`Provider ${res.provider_name}: ${res.status_label}`, {
           description: res.message,
           duration: 6000,
@@ -571,16 +571,15 @@ export default function AudienceRadarPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm text-white">
-                  Audience Source Provider: Reddit (1º Provedor)
+                  Audience Source Providers
                 </span>
                 <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-mono">
-                  INTEGRAÇÃO PENDENTE
+                  STATUS EM TEMPO REAL
                 </Badge>
               </div>
               <p className="text-xs text-gray-300 mt-0.5">
-                A fonte real ainda não está conectada neste ambiente. A arquitetura analítica
-                (Intent Score, Relevance Score, Match Engine e Oportunidades) está 100% pronta e
-                modular, operando com dados legítimos de teste claramente identificados.
+                Google, YouTube e Reddit informam abaixo se estão ativos, aguardando credenciais ou
+                aprovação. Resultados reais seguem para Intent Score, Match Engine e Oportunidades.
               </p>
             </div>
           </div>
@@ -613,7 +612,7 @@ export default function AudienceRadarPage() {
               CAMADA DE COLETA
             </span>
             <span>
-              Reddit (Provider 1 - Pendente) • YouTube / Google Search / Fóruns (Preparados)
+              Google Search • YouTube • Reddit oficial • Fóruns (preparado)
             </span>
           </div>
           <div className="flex items-center gap-2 text-gray-300">
@@ -650,10 +649,10 @@ export default function AudienceRadarPage() {
 
         <div className="hidden lg:flex items-center gap-3 font-mono text-[10px] text-gray-400">
           <span className="flex items-center gap-1 text-amber-400">
-            <Clock className="w-3 h-3" /> Reddit (Integração pendente)
+            <Clock className="w-3 h-3" /> Status carregado do ambiente
           </span>
           <span>•</span>
-          <span className="text-gray-500">YouTube & Search (Preparados)</span>
+          <span className="text-gray-500">Sem dados fictícios</span>
         </div>
       </div>
 
@@ -727,9 +726,9 @@ export default function AudienceRadarPage() {
               onChange={(e) => setSelectedProvider(e.target.value as any)}
               className="w-full h-10 rounded-xl bg-[#0A0B10] border border-[#232738] text-xs text-white px-3 focus:outline-none focus:border-[#00F2FF]"
             >
-              <option value="reddit">Reddit (Provider 1 - Pendente)</option>
-              <option value="youtube">YouTube (Futuro - Arquitetura)</option>
-              <option value="google_search">Google Search (Futuro)</option>
+              <option value="google_search">Google Search</option>
+              <option value="youtube">YouTube</option>
+              <option value="reddit">Reddit</option>
               <option value="forums_reviews">Fóruns & Reviews (Futuro)</option>
             </select>
           </div>
