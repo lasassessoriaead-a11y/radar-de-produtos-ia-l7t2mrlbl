@@ -38,9 +38,18 @@ export function MercadoLivreAffiliateAssistant({product,open,onOpenChange}:Props
  useEffect(()=>{if(open){setRate(product.commission_rate>0?String(product.commission_rate).replace('.',','):'');setLink(product.affiliate_url||'')}},[open,product.commission_rate,product.affiliate_url])
 
  const openProduct=async()=>{
-  if(!product.product_url)return toast.error('Este produto ainda não tem URL comercial confirmada.')
-  try{await navigator.clipboard.writeText(product.product_url);toast.success('URL do produto copiada. Na página do produto, use Compartilhar pela Barra de Afiliados ou cole a URL no Gerador de Links do Portal.')}catch{toast.info('Abra o produto e use Compartilhar pela Barra de Afiliados.')}
-  window.open(product.product_url,'_blank','noopener,noreferrer')
+  const confirmedUrl=String(product.product_url||'').trim()
+  const fallbackSearch=`https://lista.mercadolivre.com.br/${encodeURIComponent(String(product.title||'').trim().replace(/%20/g,'-'))}`
+  const target=confirmedUrl||fallbackSearch
+  const copyValue=confirmedUrl||String(product.title||'').trim()
+  try{
+   await navigator.clipboard.writeText(copyValue)
+   if(confirmedUrl)toast.success('URL do produto copiada. A página do produto será aberta agora.')
+   else toast.info('A URL comercial deste card ainda não foi confirmada. Copiei o nome exato e abri a busca do Mercado Livre para você localizar o produto sem inventar um link.')
+  }catch{
+   toast.info(confirmedUrl?'Abrindo o produto no Mercado Livre.':'Abrindo a busca do produto no Mercado Livre.')
+  }
+  window.open(target,'_blank','noopener,noreferrer')
  }
 
  const openPortalHelp=()=>window.open(AFFILIATE_HELP,'_blank','noopener,noreferrer')
@@ -79,13 +88,13 @@ export function MercadoLivreAffiliateAssistant({product,open,onOpenChange}:Props
   <DialogContent className="bg-[#10121A] border-[#FFD600]/30 text-white sm:max-w-xl">
    <DialogHeader>
     <DialogTitle className="text-[#FFD600]">Assistente de Afiliados • Mercado Livre</DialogTitle>
-    <DialogDescription className="text-gray-400">O Radar abre o produto correto e copia a URL. O Mercado Livre não fornece um endereço público estável que leve direto ao seu painel autenticado; no computador, o acesso oficial é pelo menu do seu nome → Afiliados.</DialogDescription>
+    <DialogDescription className="text-gray-400">O Radar abre o produto quando a URL comercial está confirmada. Quando o Mercado Livre ainda não devolveu essa URL, abre a busca pelo nome exato em vez de fabricar um endereço incorreto.</DialogDescription>
    </DialogHeader>
    <div className="space-y-4">
     <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-2">
      <div className="text-xs text-gray-300 font-semibold">1. Abrir o produto certo</div>
-     <div className="text-[11px] text-gray-500">O botão copia a URL deste produto e abre o anúncio. Se sua Barra de Afiliados estiver ativa, use Compartilhar para gerar o link. Se não estiver, entre no Portal pelo menu do seu nome e use Gerador de Links.</div>
-     <Button type="button" onClick={openProduct} disabled={!product.product_url} className="w-full bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><ExternalLink className="w-4 h-4 mr-2"/>Copiar URL + abrir este produto</Button>
+     <div className="text-[11px] text-gray-500">Se a URL estiver confirmada, o botão copia e abre o anúncio. Se ainda não estiver, ele copia o nome exato e abre a busca do Mercado Livre para você chegar ao produto correto.</div>
+     <Button type="button" onClick={openProduct} className="w-full bg-[#FFE600] text-black hover:bg-[#FFE600]/90"><ExternalLink className="w-4 h-4 mr-2"/>{product.product_url?'Copiar URL + abrir este produto':'Copiar nome + localizar este produto'}</Button>
      <Button type="button" variant="outline" onClick={openPortalHelp} className="w-full border-[#00F2FF]/30 text-[#00F2FF]"><Info className="w-4 h-4 mr-2"/>Como acessar o Portal do Afiliado</Button>
     </div>
     <div className="rounded-xl border border-[#2A2F42] bg-[#0B0D14] p-3 space-y-3">
