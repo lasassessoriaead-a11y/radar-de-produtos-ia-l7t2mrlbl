@@ -1,10 +1,30 @@
-import React, { useMemo, useState } from 'react'
-import { CheckCircle2, Gift, ShieldCheck, Sparkles, Tag, Mail, Send } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  CheckCircle2,
+  Gift,
+  ShieldCheck,
+  Sparkles,
+  Tag,
+  Mail,
+  Send,
+  ExternalLink,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function LeadCapturePage() {
   const params = useMemo(() => new URLSearchParams(window.location.search), [])
+  const campaignId = params.get('campanha') || ''
+  const [offer, setOffer] = useState<{
+    title: string
+    image_url: string
+    category: string
+    platform: string
+    price: number
+    promo_price: number
+  } | null>(null)
+  const [loadingOffer, setLoadingOffer] = useState(Boolean(campaignId))
+  const [offerUrl, setOfferUrl] = useState('')
   const [form, setForm] = useState({
     name: '',
     identifier: '',
@@ -18,6 +38,31 @@ export default function LeadCapturePage() {
   const [success, setSuccess] = useState(false)
   const [message, setMessage] = useState('')
 
+  useEffect(() => {
+    if (!campaignId) return
+
+    const controller = new AbortController()
+    fetch(`/api/public-offer?campaign=${encodeURIComponent(campaignId)}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(data.error || 'Oferta não encontrada.')
+        setOffer(data.offer)
+        setForm((current) => ({
+          ...current,
+          product_interest: current.product_interest || data.offer?.title || '',
+          category: current.category || data.offer?.category || '',
+        }))
+      })
+      .catch((error) => {
+        if (error?.name !== 'AbortError') setMessage(error?.message || 'Oferta indisponível.')
+      })
+      .finally(() => setLoadingOffer(false))
+
+    return () => controller.abort()
+  }, [campaignId])
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setMessage('')
@@ -28,14 +73,13 @@ export default function LeadCapturePage() {
 
     setSubmitting(true)
     try {
-      const base = import.meta.env.VITE_POCKETBASE_URL || ''
-      const res = await fetch(`${base}/backend/v1/public/leads/capture`, {
+      const res = await fetch('/api/public-leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
           channel: 'landing_page',
-          campaign_id: params.get('campanha') || '',
+          campaign_id: campaignId,
           product_id: params.get('produto_id') || '',
           origin_source: window.location.href,
           authorized_purpose:
@@ -47,6 +91,7 @@ export default function LeadCapturePage() {
       if (!res.ok || data.success === false) {
         throw new Error(data.error || data.message || 'Não foi possível concluir o cadastro.')
       }
+      setOfferUrl(data.offer_url || '')
       setSuccess(true)
       setMessage(data.message || 'Cadastro realizado com sucesso.')
     } catch (err: any) {
@@ -65,8 +110,36 @@ export default function LeadCapturePage() {
             Radar de Produtos IA
           </div>
           <h1 className="text-4xl font-black leading-tight sm:text-5xl">
-            Receba ofertas que façam sentido para você.
+            {offer?.title || 'Receba ofertas que façam sentido para você.'}
           </h1>
+          {offer?.image_url && (
+            <div className="max-w-md overflow-hidden rounded-3xl border border-white/10 bg-white p-4">
+              <img
+                src={offer.image_url}
+                alt={offer.title}
+                className="mx-auto h-64 w-full object-contain"
+              />
+            </div>
+          )}
+          {loadingOffer ? (
+            <p className="text-sm text-cyan-300">Carregando os dados da oferta...</p>
+          ) : offer ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {offer.platform && (
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-300">
+                  {offer.platform}
+                </span>
+              )}
+              {(offer.promo_price > 0 || offer.price > 0) && (
+                <strong className="text-2xl text-emerald-300">
+                  {(offer.promo_price || offer.price).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </strong>
+              )}
+            </div>
+          ) : null}
           <p className="max-w-xl text-base leading-7 text-slate-300">
             Informe o que você procura e receba apenas conteúdos e oportunidades relacionados ao seu
             interesse. Sem listas compradas e sem contato sem permissão.
@@ -101,6 +174,16 @@ export default function LeadCapturePage() {
               <CheckCircle2 className="mb-5 h-14 w-14 text-emerald-400" />
               <h2 className="text-2xl font-black">Cadastro realizado</h2>
               <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{message}</p>
+              {offerUrl && (
+                <a
+                  href={offerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-violet-500 px-6 text-sm font-black text-slate-950 hover:opacity-90"
+                >
+                  Ver oferta agora <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
               <p className="mt-5 text-xs text-slate-500">
                 Você poderá revogar seu consentimento a qualquer momento pelos canais
                 disponibilizados.
@@ -199,7 +282,7 @@ export default function LeadCapturePage() {
 
                 <Button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !campaignId || loadingOffer}
                   className="h-12 w-full bg-gradient-to-r from-cyan-400 to-violet-500 font-black text-slate-950 hover:opacity-90"
                 >
                   {submitting ? (
@@ -215,6 +298,11 @@ export default function LeadCapturePage() {
                   Seus dados não são coletados de redes sociais e não são adicionados sem sua ação
                   voluntária.
                 </p>
+                {!campaignId && (
+                  <p className="text-center text-xs text-amber-300">
+                    Esta página precisa ser aberta pelo link de uma campanha do Radar IA.
+                  </p>
+                )}
               </form>
             </>
           )}
