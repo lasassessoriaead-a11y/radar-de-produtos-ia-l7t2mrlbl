@@ -650,6 +650,24 @@ Pedido do Usuário: ${userText}`
                 <Save className="w-3.5 h-3.5" />
                 {isSaving ? 'Salvando...' : 'Salvar Campanha'}
               </Button>
+
+              {savedCampaignId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    window.open(
+                      `/ofertas?campanha=${encodeURIComponent(savedCampaignId)}`,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                  className="h-9 border-[#00E676]/40 bg-[#00E676]/10 text-xs font-bold text-[#00E676] hover:bg-[#00E676]/20"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Abrir Link da Oferta
+                </Button>
+              )}
             </>
           )}
         </div>
